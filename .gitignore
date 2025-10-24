@@ -1,0 +1,9 @@
+#ignore .env
+.env
+
+#ignore logs
+logs    
+
+#ignore servicesAccountKey.json
+servicesAccountKey.json
+

@@ -1,0 +1,565 @@
+/* =======================
+   :ROOT VARIABLES
+======================= */
+:root {
+  --primary-color: #007bff;
+  --primary-hover: #0056b3;
+  --danger-color: #dc3545;
+  --danger-hover: #c82333;
+  --light-grey: #f8f9fa;
+  --medium-grey: #e9ecef;
+  --dark-grey: #6c757d;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --card-radius: 12px;
+  --laundry-color: #ffc107;
+}
+
+/* ===== General ===== */
+body {
+  font-family: var(--font-family);
+  margin: 0;
+  background: var(--light-grey);
+  color: #333;
+}
+
+nav {
+  background: #fff;
+  color: #333;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--medium-grey);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+nav .logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+nav .logo a {
+  color: #333;
+  text-decoration: none;
+}
+
+nav .links {
+  display: flex;
+  gap: 1rem;
+}
+
+nav .links a {
+  color: #555;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+nav .links a:hover {
+  background-color: #f0f7ff;
+}
+
+nav .links a.active {
+  color: var(--primary-color);
+  font-weight: bold;
+  background-color: #e7f3ff;
+}
+
+nav .user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+nav .user-info a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+/* ===== Page Header ===== */
+.page-header {
+  padding: 1rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.page-header h1 {
+  margin: 0;
+  color: #333;
+}
+
+/* ===== Wardrobe Layout ===== */
+.wardrobe-container {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  align-items: flex-start;
+}
+
+/* Sticky Side Panels Container */
+.wardrobe-side-panels {
+  position: sticky;
+  top: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Card Base */
+.card {
+  background: #fff;
+  border-radius: var(--card-radius);
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+}
+
+.card h2 {
+  margin-top: 0;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.75rem;
+  color: #000;
+}
+
+/* Upload & Laundry Card Width */
+.upload-panel,
+.laundry-card {
+  width: 350px;
+  box-sizing: border-box;
+}
+
+/* ===== Upload Panel ===== */
+#drop-zone {
+  border: 2px dashed var(--medium-grey);
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  color: var(--dark-grey);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+#drop-zone.drag-over {
+  border-color: var(--primary-color);
+  background: #f0f7ff;
+}
+
+#drop-zone p {
+  margin: 0;
+  font-weight: 500;
+}
+
+#file-input {
+  display: none;
+}
+
+#item-details-form {
+  display: none;
+  margin-top: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #555;
+}
+
+/* Laundry Checkbox */
+.status-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+}
+
+.status-checkbox-group label {
+  margin: 0;
+  font-weight: 400;
+  color: #333;
+  user-select: none;
+}
+
+.status-checkbox-group input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--laundry-color);
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+/* Preview */
+#preview-area {
+  display: none;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+#image-preview {
+  max-width: 100%;
+  height: auto;
+  max-height: 200px;
+  border-radius: 8px;
+  border: 1px solid var(--medium-grey);
+}
+
+/* Buttons */
+.button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1rem;
+  transition: background-color 0.2s ease;
+}
+
+.button:hover {
+  background: var(--primary-hover);
+}
+
+.button.btn-danger {
+  background: var(--danger-color);
+}
+
+.button.btn-danger:hover {
+  background: var(--danger-hover);
+}
+
+.button.btn-secondary {
+  background: #6c757d;
+}
+
+.button.btn-secondary:hover {
+  background: #5a6268;
+}
+
+.button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+#upload-status {
+  margin-top: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.status-success { color: green; }
+.status-error   { color: red; }
+.status-info    { color: #555; }
+
+/* ===== Laundry Section ===== */
+.laundry-card {
+  padding-bottom: 0.5rem;
+}
+
+.laundry-card h2 {
+  color: #666;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.section-empty-message {
+  font-style: italic;
+  color: var(--dark-grey);
+  text-align: center;
+  padding: 1rem 0;
+}
+
+/* Carousel Wrapper */
+.laundry-carousel-wrapper {
+  position: relative;
+  padding-bottom: 1rem;
+  margin: 0 -1.5rem;
+}
+
+.item-carousel {
+  display: flex;
+  overflow-x: auto;
+  gap: 1rem;
+  padding: 0 1.5rem 1rem 1.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) var(--light-grey);
+  scroll-behavior: smooth;
+}
+
+/* Hide Scrollbar in Laundry */
+.laundry-carousel-wrapper .item-carousel.hide-scroll {
+  scrollbar-width: none;
+}
+
+.laundry-carousel-wrapper .item-carousel.hide-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.item-carousel::-webkit-scrollbar {
+  height: 8px;
+}
+
+.item-carousel::-webkit-scrollbar-track {
+  background: var(--light-grey);
+  border-radius: 4px;
+}
+
+.item-carousel::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color);
+  border-radius: 4px;
+  border: 2px solid var(--light-grey);
+}
+
+/* Item Cards */
+.item-card {
+  flex: 0 0 160px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 1 / 1.2;
+  transition: all 0.2s ease;
+  background-color: #eee;
+}
+
+.item-card.is-laundry {
+  opacity: 0.6;
+  border: 2px solid var(--laundry-color);
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+.item-card.is-laundry img {
+  filter: grayscale(80%);
+}
+
+.item-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.item-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Carousel Nav Buttons */
+.carousel-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(calc(-50% - 5px));
+  width: 30px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s ease, background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.carousel-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.carousel-nav-btn.left  { left: 10px; }
+.carousel-nav-btn.right { right: 10px; }
+
+.laundry-carousel-wrapper:hover .carousel-nav-btn {
+  opacity: 1;
+}
+
+.carousel-nav-btn:disabled {
+  opacity: 0 !important;
+  cursor: default;
+}
+
+/* Control Buttons */
+.delete-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(220, 53, 69, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 30px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.item-card:hover .delete-button {
+  opacity: 1;
+}
+
+.delete-button:hover {
+  background: rgba(220, 53, 69, 1);
+}
+
+.status-toggle-button {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.status-toggle-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.item-card.is-laundry .status-toggle-button {
+  background: var(--laundry-color);
+  color: #333;
+  font-weight: bold;
+}
+
+.item-card.is-laundry .status-toggle-button:hover {
+  background: #e6b300;
+}
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-overlay.visible {
+  display: flex;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--card-radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1200px) {
+  .wardrobe-container {
+    grid-template-columns: 300px 1fr;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .wardrobe-container {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .wardrobe-side-panels {
+    position: static;
+    display: block;
+  }
+
+  .upload-panel,
+  .laundry-card {
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .item-card {
+    flex: 0 0 140px;
+  }
+}
+
+@media (max-width: 768px) {
+  nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  nav .links {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .item-card {
+    flex: 0 0 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .item-card {
+    flex: 0 0 100px;
+    aspect-ratio: 1 / 1.2;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 1rem;
+  }
+}

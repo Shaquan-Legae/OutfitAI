@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Updated CSP to allow weather images and data URIs -->
+    <meta http-equiv="Content-Security-Policy"
+        content="img-src https://cdn.weatherapi.com data:; object-src 'none'; script-src 'self' '/static/js/index.js'">
+    <title>Dashboard - OutfitAI</title>
+    <link rel="stylesheet" href="/static/css/index.css">
+    <link rel="stylesheet" href="/static/css/common.css">
+</head>
+
+<body>
+    <nav>
+        <div class="logo"><a href="/">OutfitAI</a></div>
+        <div class="links">
+            <a href="/" class="active">Home</a>
+            <a href="/wardrobe">My Wardrobe</a>
+            <a href="/recommendations">Suggestions</a>
+        </div>
+        <div class="user-info">
+            <span>Welcome, {{ user.name }}!</span>
+            <a href="/logout">Logout</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="card">
+            <h1>{{ greeting }}, {{ user.name }}!</h1>
+
+            <!-- Weather Container -->
+            <div class="weather-container">
+                <div id="weather-widget" class="weather-card loading clickable">
+                    <div class="weather-main">
+                        <div class="weather-icon"></div>
+                        <div class="weather-details">
+                            <span class="weather-temp">--°C</span>
+                            <span class="weather-desc">Loading weather...</span>
+                        </div>
+                    </div>
+                    <div class="weather-extra">
+                        <span class="weather-city">Detecting location...</span>
+                        <span class="weather-feels-like">Feels like: --°C</span>
+                    </div>
+                </div>
+
+                <div id="weather-extra-details">
+                    <div class="current-details-grid">
+                        <div class="detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
+                            </svg>
+                            <div class="detail-item-content">
+                                <span class="detail-item-label">Wind</span>
+                                <span class="detail-item-value" id="data-wind">-- kph</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path
+                                    d="M12 2.69l.1-.1a4.95 4.95 0 0 1 7 7L12 21l-7.1-11.41a4.95 4.95 0 0 1 7-7L12 2.69zM12 18a2 2 0 0 0 0-4 2 2 0 0 0 0 4z" />
+                            </svg>
+                            <div class="detail-item-content">
+                                <span class="detail-item-label">Humidity</span>
+                                <span class="detail-item-value" id="data-humidity">-- %</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                            <div class="detail-item-content">
+                                <span class="detail-item-label">Visibility</span>
+                                <span class="detail-item-value" id="data-vis">-- km</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2" />
+                                <path d="M12 20v2" />
+                                <path d="m4.93 4.93 1.41 1.41" />
+                                <path d="m17.66 17.66 1.41 1.41" />
+                                <path d="M2 12h2" />
+                                <path d="M20 12h2" />
+                                <path d="m6.34 17.66-1.41 1.41" />
+                                <path d="m19.07 4.93-1.41 1.41" />
+                            </svg>
+                            <div class="detail-item-content">
+                                <span class="detail-item-label">UV Index</span>
+                                <span class="detail-item-value" id="data-uv">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hourly-forecast-section">
+                        <h4>Hourly Forecast</h4>
+                        <div class="hourly-forecast-container" id="hourly-forecast-container">
+                            <span class="loading-hourly">Loading hourly data...</span>
+                        </div>
+                    </div>
+
+                    <div class="astro-section">
+                        <div class="astro-item">
+                            <svg id="sunrise-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M12 2v8" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path
+                                    d="m17.66 12.34 1.41-1.41" /><path d="M22 22H2" /><path d="M16 18a4 4 0 0 0-8 0" /></svg>
+                            <span class="astro-label">Sunrise</span>
+                            <span class="astro-time" id="sunrise-time">--:-- --</span>
+                        </div>
+                        <div class="astro-item">
+                            <svg id="sunset-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M12 10V2" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path
+                                    d="m17.66 12.34 1.41-1.41" /><path d="M22 22H2" /><path d="M16 18a4 4 0 0 0-8 0" /></svg>
+                            <span class="astro-label">Sunset</span>
+                            <span class="astro-time" id="sunset-time">--:-- --</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p>This is your main hub. From here, you can manage your wardrobe or get new outfit suggestions.</p>
+
+            <h2>What's next?</h2>
+            <p>Your first step is to add clothes to your digital wardrobe.</p>
+            <a href="/wardrobe" class="action-button">
+                Go to My Wardrobe
+            </a>
+        </div>
+    </div>
+
+    <script src="/static/js/index.js"></script>
+</body>
+
+</html>

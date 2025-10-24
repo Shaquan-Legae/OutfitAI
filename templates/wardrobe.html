@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wardrobe - OutfitAI</title>
+  <link rel="stylesheet" href="/static/css/common.css">
+  <link rel="stylesheet" href="/static/css/wardrobe.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <div class="logo">
+      <a href="/">OutfitAI</a>
+    </div>
+    <div class="links">
+      <a href="/">Home</a>
+      <a href="/wardrobe" class="active">My Wardrobe</a>
+      <a href="/recommendations">Suggestions</a>
+    </div>
+    <div class="user-info">
+      <span>Welcome, {{ user.name }}!</span>
+      <a href="/logout">Logout</a>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>My Wardrobe</h1>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="wardrobe-container">
+    <!-- Left Sidebar: Upload + Laundry -->
+    <div class="wardrobe-side-panels">
+      
+      <!-- Upload Panel -->
+      <div class="upload-panel card">
+        <h2>Add New Item</h2>
+        <form id="upload-form">
+          <div id="drop-zone">
+            <p>Drag & drop an image here</p>
+            <p style="font-size: 0.9rem; margin-top: 4px;">or click to select file</p>
+          </div>
+          <input type="file" id="file-input" name="file" accept="image/*">
+
+          <!-- Preview -->
+          <div id="preview-area">
+            <img id="image-preview" src="#" alt="Image preview">
+            <button type="button" id="cancel-preview" class="button btn-secondary">Cancel</button>
+          </div>
+
+          <!-- Item Details -->
+          <div id="item-details-form">
+            <div class="form-group">
+              <label for="item-name">Item Name</label>
+              <input
+                type="text"
+                id="item-name"
+                name="item_name"
+                required
+                placeholder="e.g., Blue Denim Jacket"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="item-category">Category</label>
+              <select id="item-category" name="item_category" required>
+                <option value="" disabled selected>-- Select Category --</option>
+                <option value="Tops">Tops (T-Shirts, Shirts, Blouses)</option>
+                <option value="Sweaters & Hoodies">Sweaters & Hoodies</option>
+                <option value="Jackets & Coats">Jackets & Coats</option>
+                <option value="Pants">Pants (Jeans, Trousers, Chinos)</option>
+                <option value="Shorts & Skirts">Shorts & Skirts</option>
+                <option value="Dresses & Jumpsuits">Dresses & Jumpsuits</option>
+                <option value="Shoes">Shoes (Sneakers, Boots, Sandals)</option>
+                <option value="Accessories">Accessories (Hats, Bags, Scarves)</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <!-- Laundry Status -->
+            <div class="form-group status-checkbox-group">
+              <input type="checkbox" id="in-laundry-checkbox" name="in_laundry">
+              <label for="in-laundry-checkbox">Mark as "In Laundry" (Unavailable)</label>
+            </div>
+
+            <button type="submit" id="submit-button" class="button" disabled>
+              Add to Wardrobe
+            </button>
+          </div>
+
+          <p id="upload-status"></p>
+        </form>
+      </div>
+
+      <!-- Laundry Basket Card -->
+      <div id="laundry-basket-card" class="card laundry-card">
+        <h2>Laundry Basket</h2>
+
+        <div class="laundry-carousel-wrapper">
+          <!-- Left Arrow -->
+          <button class="carousel-nav-btn left" id="laundry-scroll-left" aria-label="Scroll left">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <!-- Carousel -->
+          <div id="laundry-items-carousel" class="item-carousel hide-scroll">
+            <!-- Items injected by JS -->
+          </div>
+
+          <!-- Right Arrow -->
+          <button class="carousel-nav-btn right" id="laundry-scroll-right" aria-label="Scroll right">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+
+        <p id="laundry-empty" class="section-empty-message" style="display: none;">
+          Your basket is clean!
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Main Gallery -->
+    <div class="card" id="wardrobe-gallery">
+      <h2>Your Available Items</h2>
+      <div id="gallery-container">
+        <p id="gallery-loading" class="section-loading-message">
+          Loading your wardrobe...
+        </p>
+        <p id="gallery-empty" class="section-empty-message" style="display: none;">
+          Your wardrobe is empty. Upload an item!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-content">
+      <h3>Delete Item</h3>
+      <p>Are you sure you want to permanently delete this item?</p>
+      <div class="modal-buttons">
+        <button class="button btn-secondary" id="modal-cancel">Cancel</button>
+        <button class="button btn-danger" id="modal-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="/static/js/wardrobe.js"></script>
+</body>
+</html>
