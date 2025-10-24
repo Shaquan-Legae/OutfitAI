@@ -1,8 +1,5 @@
 #ignore .env
-.env
-
-#ignore logs
-logs    
+.env  
 
 #ignore servicesAccountKey.json
 servicesAccountKey.json

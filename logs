@@ -1,0 +1,13 @@
+It doens't show images on the return.
+
+Style the return to have the 'Hello Kamogelo....' part at the top left, and the images in a row with their names under the respective image, and below it show the why it works and end with a note on completing the look and style the generate another outfit button to look nicer. be creative and add animations and transitions. Make sure the site looks professional. Be free!
+
+2. It should be able to return sales on items of your fashion sense
+3. on wardrobe, make a laundry basket
+4. make sure chatbot is context aware #DONE
+5. Chatbot must send properly written text #DONE
+6. Implement voice conversations for chatbot
+7. Chat history for chatbot
+8. Recommendations history tab
+9. Image recognition of the chatbot
+10. Responsive rules for UI
