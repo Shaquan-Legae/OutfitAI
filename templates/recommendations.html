@@ -1,181 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy"
-        content="img-src https://cdn.weatherapi.com data: 'self'; object-src 'none'; script-src 'self'">
+    <meta http-equiv="Content-Security-Policy" content="img-src https://cdn.weatherapi.com data: 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;">
 
     <title>Suggestions - OutfitAI</title>
-    <link rel="stylesheet" href="/static/css/rec_style.css">
-    <link rel="stylesheet" href="/static/css/common.css">
-</head>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-<body>
-    <nav>
-        <div class="logo"><a href="/">OutfitAI</a></div>
-        <div class="links">
-            <a href="/">Home</a>
-            <a href="/wardrobe">My Wardrobe</a>
-            <a href="/recommendations" class="active">Suggestions</a>
-        </div>
-        <div class="user-info">
-            <span>Welcome, {{ user.name }}!</span>
-            <a href="/logout">Logout</a>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: '#4F46E5', 
+                        primaryHover: '#4338CA',
+                        weatherFrom: '#3B82F6',
+                        weatherTo: '#4F46E5',
+                    },
+                    animation: { 'bounce-slow': 'bounce 3s infinite', 'pop-in': 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' },
+                    keyframes: { popIn: { '0%': { transform: 'scale(0)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } } }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer components {
+            .btn { @apply inline-flex items-center justify-center px-6 py-3 rounded-xl text-base font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-sm; }
+            .btn-primary { @apply bg-primary text-white hover:bg-primaryHover hover:-translate-y-0.5 shadow-indigo-200 focus:ring-primary disabled:bg-slate-300 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none; }
+            .btn-secondary { @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-slate-200 disabled:opacity-50; }
+            
+            /* Weather */
+            .weather-card { @apply relative overflow-hidden rounded-2xl bg-gradient-to-br from-weatherFrom to-weatherTo text-white shadow-lg transition-all duration-300 p-6 z-20; }
+            .weather-card.loading { @apply from-slate-100 to-slate-200 text-slate-400 cursor-wait shadow-none; }
+            .weather-card.clickable { @apply cursor-pointer hover:-translate-y-1 hover:shadow-xl; }
+            #weather-extra-details { @apply bg-white border-x border-b border-slate-200 rounded-b-2xl shadow-md -mt-1 z-10 overflow-hidden max-h-0 opacity-0 transition-all duration-500 ease-in-out; }
+            #weather-extra-details.open { @apply max-h-[600px] opacity-100 py-6 px-6; }
+
+            /* Chat Widget */
+            .chat-widget { 
+                @apply fixed bottom-24 right-6 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col transition-all duration-300 transform origin-bottom-right opacity-0 scale-95 pointer-events-none z-50; 
+                height: 500px; 
+                max-height: 70vh;
+            }
+            .chat-widget.open { @apply opacity-100 scale-100 pointer-events-auto; }
+            .chat-messages { @apply flex-1 overflow-y-auto p-4 bg-slate-50 scroll-smooth; }
+            
+            /* Dynamic JS Classes */
+            .hour-item { @apply flex-none w-[70px] flex flex-col items-center justify-center py-3 bg-slate-50 rounded-xl border border-slate-100 snap-center; }
+            .outfit-item { @apply relative bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md group; }
+            .message { @apply mb-3 max-w-[85%] text-sm leading-relaxed rounded-2xl py-2.5 px-4 shadow-sm; }
+            .message.bot { @apply bg-white border border-slate-200 text-slate-800 rounded-bl-none self-start; }
+            .message.user { @apply bg-primary text-white rounded-br-none self-end ml-auto; }
+        }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-8">
+                    <a href="/" class="flex-shrink-0 flex items-center gap-2">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold"><i class="fa-solid fa-shirt"></i></div>
+                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">OutfitAI</span>
+                    </a>
+                    <div class="hidden sm:flex sm:space-x-4">
+                        <a href="/" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">Home</a>
+                        <a href="/wardrobe" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">My Wardrobe</a>
+                        <a href="/recommendations" class="text-primary bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium" aria-current="page">Suggestions</a>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-slate-600 hidden md:block">Welcome, <span class="font-semibold text-slate-900">{{ user.name }}</span></span>
+                    <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition-colors"><i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Logout</a>
+                </div>
+            </div>
         </div>
     </nav>
 
-    <div class="content">
-        <div class="card">
-            <h1>Get Your Outfit Suggestion</h1>
-            <p>First, here's your local weather. Then, ask the AI to generate an outfit based on this and your uploaded
-                wardrobe.</p>
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight">Get Your Outfit Suggestion</h1>
+            <p class="text-lg text-slate-500 max-w-2xl mx-auto">Check your local weather, then let AI curate the perfect look from your wardrobe.</p>
+        </div>
 
-            <div class="weather-container">
-                <div id="weather-widget" class="weather-card loading">
-                    <div class="weather-main">
-                        <div class="weather-icon"></div>
-                        <div class="weather-details">
-                            <span class="weather-temp">--°C</span>
-                            <span class="weather-desc">Loading weather...</span>
+        <div class="max-w-3xl mx-auto mb-10">
+            <div id="weather-widget" class="weather-card loading group">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-6">
+                    <div class="weather-main flex items-center gap-6">
+                        <div class="weather-icon relative">
+                             <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center shadow-inner backdrop-blur-sm">
+                                <i class="fa-solid fa-cloud text-2xl opacity-50"></i>
+                            </div>
+                        </div>
+                        <div class="weather-details text-center sm:text-left">
+                            <span class="weather-temp block text-4xl sm:text-5xl font-bold">--°C</span>
+                            <span class="weather-desc block text-base font-medium opacity-90 mt-1">Loading weather...</span>
                         </div>
                     </div>
-                    <div class="weather-extra">
-                        <span class="weather-city">Detecting location...</span>
-                        <span class="weather-feels-like">Feels like: --°C</span>
+                    <div class="weather-extra text-center sm:text-right">
+                        <span class="weather-city block text-xl font-semibold">Detecting...</span>
+                        <span class="weather-feels-like block text-sm opacity-90 mt-1">Feels like: --°C</span>
+                        <div class="mt-2 text-xs font-bold uppercase tracking-widest opacity-75 group-hover:translate-x-1 transition-transform">
+                            Click details <i class="fa-solid fa-chevron-down ml-1"></i>
+                        </div>
                     </div>
                 </div>
-                <div id="weather-extra-details">
-                    <div class="detail-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
-                        </svg>
-                        <div class="detail-item-content"> <span class="detail-item-label">Wind</span> <span
-                                class="detail-item-value" id="data-wind">-- kph</span> </div>
+            </div>
+            <div id="weather-extra-details">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                        <div class="text-indigo-500"><i class="fa-solid fa-wind text-lg"></i></div>
+                        <div><span class="text-xs font-bold text-slate-400 uppercase block">Wind</span><span class="font-semibold text-slate-800 block" id="data-wind">--</span></div>
                     </div>
-                    <div class="detail-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M12 2.69l.1-.1a4.95 4.95 0 0 1 7 7L12 21l-7.1-11.41a4.95 4.95 0 0 1 7-7L12 2.69zM12 18a2 2 0 0 0 0-4 2 2 0 0 0 0 4z" />
-                        </svg>
-                        <div class="detail-item-content"> <span class="detail-item-label">Humidity</span> <span
-                                class="detail-item-value" id="data-humidity">-- %</span> </div>
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                        <div class="text-blue-500"><i class="fa-solid fa-droplet text-lg"></i></div>
+                        <div><span class="text-xs font-bold text-slate-400 uppercase block">Humidity</span><span class="font-semibold text-slate-800 block" id="data-humidity">--</span></div>
                     </div>
-                    <div class="detail-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                            <circle cx="12" cy="12" r="3" />
-                        </svg>
-                        <div class="detail-item-content"> <span class="detail-item-label">Visibility</span> <span
-                                class="detail-item-value" id="data-vis">-- km</span> </div>
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                        <div class="text-teal-500"><i class="fa-solid fa-eye text-lg"></i></div>
+                        <div><span class="text-xs font-bold text-slate-400 uppercase block">Visibility</span><span class="font-semibold text-slate-800 block" id="data-vis">--</span></div>
                     </div>
-                    <div class="detail-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="4" />
-                            <path d="M12 2v2" />
-                            <path d="M12 20v2" />
-                            <path d="m4.93 4.93 1.41 1.41" />
-                            <path d="m17.66 17.66 1.41 1.41" />
-                            <path d="M2 12h2" />
-                            <path d="M20 12h2" />
-                            <path d="m6.34 17.66-1.41 1.41" />
-                            <path d="m19.07 4.93-1.41 1.41" />
-                        </svg>
-                        <div class="detail-item-content"> <span class="detail-item-label">UV Index</span> <span
-                                class="detail-item-value" id="data-uv">--</span> </div>
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                        <div class="text-amber-500"><i class="fa-solid fa-sun text-lg"></i></div>
+                        <div><span class="text-xs font-bold text-slate-400 uppercase block">UV Index</span><span class="font-semibold text-slate-800 block" id="data-uv">--</span></div>
                     </div>
                 </div>
-            </div> <button id="get-suggestion-btn" disabled>Generate My Outfit</button>
+                <div class="mb-6">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Hourly Forecast</h4>
+                    <div id="hourly-forecast-container" class="flex gap-2 overflow-x-auto hide-scroll pb-2 snap-x">
+                        <span class="text-slate-400 text-sm italic w-full text-center">Loading...</span>
+                    </div>
+                </div>
+                <div class="flex gap-8 text-sm font-medium text-slate-600">
+                    <div class="flex items-center gap-2"><i class="fa-solid fa-sun text-amber-400"></i> Sunrise: <span id="sunrise-time">--:--</span></div>
+                    <div class="flex items-center gap-2"><i class="fa-solid fa-moon text-indigo-400"></i> Sunset: <span id="sunset-time">--:--</span></div>
+                </div>
+            </div>
+        </div>
 
-            <div id="suggestion-output" class="suggestion-card">
-                <p class="loading-message" style="display: none;">Generating your outfit...</p>
+        <div class="flex justify-center mb-12">
+            <button id="get-suggestion-btn" class="btn btn-primary w-full sm:w-auto min-w-[250px] text-lg shadow-xl shadow-indigo-100" disabled>
+                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate My Outfit
+            </button>
+        </div>
+
+        <div id="suggestion-output" class="max-w-4xl mx-auto hidden flex-col">
+            <div class="loading-message hidden text-center py-12">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-primary mb-4"></i>
+                <p class="text-slate-500 font-medium">Analyzing wardrobe & weather...</p>
+            </div>
+            
+            <div id="suggestion-content" class="hidden w-full relative">
+                <div class="flex justify-between items-center mb-6">
+                     <h2 id="suggestion-greeting" class="text-2xl font-bold text-slate-900"></h2>
+                     <button id="save-outfit-btn" class="btn btn-secondary text-sm px-4 py-2 hover:text-red-500 transition-colors">
+                        <i class="fa-regular fa-heart mr-2"></i> Save Look
+                     </button>
+                </div>
                 
-                <div id="suggestion-content" style="display: none;">
-                    
-                    <div class="suggestion-header">
-                        <h2 id="suggestion-greeting"></h2>
+                <div id="outfit-display-area" class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8"></div>
+                
+                <div class="grid md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2"><i class="fa-solid fa-check-circle text-green-500"></i> Why it works</h3>
+                        <p id="why-it-works-text" class="text-slate-600 leading-relaxed text-sm"></p>
                     </div>
-                    
-                    <div class="outfit-display" id="outfit-display-area">
-                        </div>
-                    
-                    <div class="suggestion-explanation-grid">
-                        <div class="suggestion-explanation">
-                            <h3>Why it works:</h3>
-                            <p id="why-it-works-text"></p>
-                        </div>
-                        
-                        <div class="suggestion-notes">
-                            <h3>A Note on Completing the Look:</h3>
-                            <p id="notes-text"></p>
-                        </div>
+                    <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+                        <h3 class="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2"><i class="fa-solid fa-lightbulb text-indigo-600"></i> Stylist Note</h3>
+                        <p id="notes-text" class="text-indigo-800 leading-relaxed text-sm"></p>
                     </div>
-
-                    <div class="suggestion-actions">
-                        <button id="get-another-suggestion-btn" class="secondary-btn">Suggest Another Outfit</button>
-                    </div>
-
+                </div>
+                <div class="text-center">
+                    <button id="get-another-suggestion-btn" class="btn btn-secondary"><i class="fa-solid fa-rotate mr-2"></i> Suggest Another Outfit</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <button class="fab" id="fab-chat" title="Open Chat">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path
-                d="M9.06 11.94A8.5 8.5 0 0 1 12 11a8.5 8.5 0 0 1 2.94.94M12 21a8.5 8.5 0 0 0 8.5-8.5c0-4.43-2.91-8.08-6.85-8.43" />
-            <path d="M12 21a8.5 8.5 0 0 1-8.5-8.5c0-4.43 2.91-8.08 6.85-8.43" />
-            <path d="M12 21a16.91 16.91 0 0 0 3.5-.41M12 21a16.91 16.91 0 0 1-3.5-.41" />
-            <path d="M12 3a16.91 16.91 0 0 0-3.5.41M12 3a16.91 16.91 0 0 1 3.5.41" />
-            <path d="M6 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
-            <path d="M18 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
-        </svg>
+    <div id="saved-outfits-container" class="fixed bottom-6 left-6 z-40 flex flex-col-reverse gap-3 items-start">
+        </div>
+
+    <button id="fab-chat" class="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-xl shadow-indigo-200 flex items-center justify-center text-2xl hover:bg-primaryHover hover:scale-105 transition-all z-50 focus:outline-none focus:ring-4 focus:ring-indigo-100 animate-bounce-slow" title="Open Chat">
+        <i class="fa-solid fa-comment-dots"></i>
     </button>
 
     <div class="chat-widget" id="chat-widget">
-        <div class="chat-header">
-            <span>Chat with OutfitAI</span>
-            <button class="chat-header-close" id="chat-close-btn">&times;</button>
-        </div>
-        <div class="chat-messages" id="chat-messages">
-            <div class="message bot">Hi {{ user.name }}! I'm OutfitAI. Ask me anything or attach an image!</div>
+        <div class="bg-primary px-5 py-3 flex justify-between items-center text-white shadow-sm flex-shrink-0">
+            <div class="flex items-center gap-2.5">
+                <div class="bg-white/20 p-1.5 rounded-lg"><i class="fa-solid fa-robot text-sm"></i></div>
+                <div><span class="block text-sm font-bold">OutfitAI Assistant</span><span class="block text-[10px] text-indigo-200 font-medium flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-400 rounded-full"></span> Online</span></div>
+            </div>
+            <button id="chat-close-btn" class="hover:bg-white/20 rounded-full w-7 h-7 flex items-center justify-center transition-colors text-sm"><i class="fa-solid fa-chevron-down"></i></button>
         </div>
 
-        <div class="chat-input-container">
-            <div class="chat-attachment-preview" id="chat-attachment-preview">
-                <img id="preview-image" src="#" alt="Image preview" />
-                <button id="remove-attachment-btn">&times;</button>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot">Hi {{ user.name }}! I'm your style assistant. Ask me about outfit advice or upload a photo! 📸</div>
+        </div>
+
+        <div class="p-3 bg-white border-t border-slate-200 flex-shrink-0">
+            <div id="chat-attachment-preview" class="hidden mb-2 mx-1 relative inline-block">
+                <img id="preview-image" src="#" alt="Preview" class="h-16 w-auto rounded-lg border border-slate-200 shadow-sm">
+                <button id="remove-attachment-btn" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center shadow-sm hover:bg-red-600 transition-colors border-2 border-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form class="chat-input-area" id="chat-form">
-                <input type="file" id="chat-file-input" accept="image/*">
-                <button type="button" id="chat-attachment-btn" title="Attach Image">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path
-                            d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
-                        </path>
-                    </svg>
-                </button>
-                <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
-                <button type="submit" id="chat-send-btn" title="Send">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                </button>
+            <form id="chat-form" class="flex items-end gap-2">
+                <input type="file" id="chat-file-input" accept="image/*" class="hidden">
+                <button type="button" id="chat-attachment-btn" class="p-2.5 text-slate-400 hover:text-primary hover:bg-indigo-50 rounded-full transition-all"><i class="fa-solid fa-paperclip text-lg"></i></button>
+                <div class="flex-1 relative"><input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" class="w-full bg-slate-100 border-0 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-white transition-all placeholder-slate-400"></div>
+                <button type="submit" id="chat-send-btn" class="p-2.5 bg-primary text-white rounded-xl hover:bg-primaryHover transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 duration-100"><i class="fa-solid fa-paper-plane text-sm"></i></button>
             </form>
         </div>
     </div>
 
     <script src="/static/js/recommendations.js"></script>
 </body>
-
 </html>

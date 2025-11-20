@@ -1,17 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // =======================
-    // --- GLOBAL VARIABLES ---
-    // =======================
+    // --- VARIABLES ---
     let userLocation = { lat: null, lon: null };
     let attachedImageBase64 = null;
-    let lastSuggestedOutfit = null; // Stores last outfit IDs for exclusion
+    let lastSuggestedOutfit = null;
+    let currentDisplayedResult = null; 
 
     const CACHE_KEY = 'weatherDataCache';
-    const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+    const CACHE_DURATION_MS = 30 * 60 * 1000;
 
-    // =======================
-    // --- ELEMENT REFERENCES ---
-    // =======================
+    // --- ELEMENTS ---
     const weatherWidget = document.getElementById('weather-widget');
     const weatherIcon = weatherWidget.querySelector('.weather-icon');
     const weatherTemp = weatherWidget.querySelector('.weather-temp');
@@ -23,13 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataHumidity = document.getElementById('data-humidity');
     const dataVis = document.getElementById('data-vis');
     const dataUv = document.getElementById('data-uv');
-    const suggestionBtn = document.getElementById('get-suggestion-btn');
-    const getAnotherSuggestionBtn = document.getElementById('get-another-suggestion-btn');
-    const hourlyContainer = document.getElementById('hourly-forecast-container');
     const sunriseTimeEl = document.getElementById('sunrise-time');
     const sunsetTimeEl = document.getElementById('sunset-time');
-    const rainIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13.367c.667.14.933.28.933.733 0 .4-.267.567-.8.633M12 14.633c.667.14.933.28.933.733 0 .4-.267.567-.8.633M8 13.367c.667.14.933.28.933.733 0 .4-.267.567-.8.633M12 4v8M8 8l-4 4M16 8l4 4"/></svg>`;
+    const hourlyContainer = document.getElementById('hourly-forecast-container');
 
+    const suggestionBtn = document.getElementById('get-suggestion-btn');
     const suggestionCard = document.getElementById('suggestion-output');
     const loadingMessage = suggestionCard.querySelector('.loading-message');
     const suggestionContent = document.getElementById('suggestion-content');
@@ -37,7 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const outfitDisplayArea = document.getElementById('outfit-display-area');
     const whyItWorksText = document.getElementById('why-it-works-text');
     const notesText = document.getElementById('notes-text');
-    const notesContainer = notesText.parentElement;
+    const getAnotherSuggestionBtn = document.getElementById('get-another-suggestion-btn');
+    
+    // Saved Outfits Elements
+    const saveOutfitBtn = document.getElementById('save-outfit-btn');
+    const savedOutfitsContainer = document.getElementById('saved-outfits-container');
 
     const fab = document.getElementById('fab-chat');
     const chatWidget = document.getElementById('chat-widget');
@@ -51,22 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewImage = document.getElementById('preview-image');
     const removeAttachmentBtn = document.getElementById('remove-attachment-btn');
 
-    // =======================
-    // --- WEATHER FUNCTIONS (Unchanged from previous versions, included for completeness) ---
-    // =======================
+    // --- WEATHER LOGIC ---
     function showWeatherError(message) {
         weatherWidget.classList.remove('loading', 'clickable', 'active');
-        weatherWidget.classList.add('error');
+        weatherWidget.classList.add('from-red-500', 'to-red-600');
         weatherCity.textContent = 'Error';
         weatherDesc.textContent = message;
-        weatherTemp.textContent = ':(';
+        weatherTemp.textContent = '--';
         weatherFeelsLike.textContent = '';
         extraDetailsPanel.classList.remove('open');
         suggestionBtn.disabled = true;
-        if (hourlyContainer) hourlyContainer.innerHTML = `<span class="error-hourly">Could not load hourly data.</span>`;
-        if (sunriseTimeEl) sunriseTimeEl.textContent = 'Error';
-        if (sunsetTimeEl) sunsetTimeEl.textContent = 'Error';
-        try { sessionStorage.removeItem(CACHE_KEY); } catch (e) { console.error("Error removing weather cache:", e); }
+        if (hourlyContainer) hourlyContainer.innerHTML = `<span class="text-white/80 text-sm">Unable to load.</span>`;
+        sessionStorage.removeItem(CACHE_KEY);
     }
 
     function updateWeatherUI(data) {
@@ -74,22 +69,19 @@ document.addEventListener('DOMContentLoaded', () => {
         weatherDesc.textContent = data.description;
         weatherCity.textContent = data.city;
         weatherFeelsLike.textContent = `Feels like: ${Math.round(data.feels_like)}°C`;
-
         weatherIcon.innerHTML = '';
         const iconImg = document.createElement('img');
         iconImg.src = data.icon.startsWith('//') ? `https:${data.icon}` : data.icon;
         iconImg.alt = data.description;
+        iconImg.className = 'w-full h-full object-contain drop-shadow-md';
         weatherIcon.appendChild(iconImg);
-
         dataWind.textContent = `${data.wind_kph} kph`;
         dataHumidity.textContent = `${data.humidity} %`;
         dataVis.textContent = `${data.vis_km} km`;
         dataUv.textContent = data.uv;
-
+        if (sunriseTimeEl) sunriseTimeEl.textContent = data.sunrise || '--:--';
+        if (sunsetTimeEl) sunsetTimeEl.textContent = data.sunset || '--:--';
         renderHourlyForecast(data.hourly_forecast);
-        if (sunriseTimeEl) sunriseTimeEl.textContent = data.sunrise || '--:-- --';
-        if (sunsetTimeEl) sunsetTimeEl.textContent = data.sunset || '--:-- --';
-
         weatherWidget.classList.remove('loading');
         weatherWidget.classList.add('clickable');
         suggestionBtn.disabled = false;
@@ -99,19 +91,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hourlyContainer) return;
         hourlyContainer.innerHTML = '';
         if (!hourly || hourly.length === 0) {
-            hourlyContainer.innerHTML = `<span class="no-hourly-data">Hourly data not available.</span>`;
+            hourlyContainer.innerHTML = `<span class="text-slate-400 text-sm w-full text-center">No data.</span>`;
             return;
         }
-
         const fragment = document.createDocumentFragment();
         hourly.forEach(hour => {
             const hourDiv = document.createElement('div');
-            hourDiv.className = 'hour-item';
+            hourDiv.className = 'hour-item'; 
             hourDiv.innerHTML = `
                 <span class="hour-time">${hour.time}</span>
-                <img src="${hour.condition_icon || ''}" alt="" onerror="this.style.display='none'">
+                <img src="${hour.condition_icon || ''}" alt="icon">
                 <span class="hour-temp">${Math.round(hour.temp_c)}°</span>
-                ${hour.chance_of_rain > 0 ? `<span class="hour-rain">${rainIconSvg} ${hour.chance_of_rain}%</span>` : ''}
+                ${hour.chance_of_rain > 0 ? `<span class="hour-rain"><i class="fa-solid fa-umbrella"></i> ${hour.chance_of_rain}%</span>` : ''}
             `;
             fragment.appendChild(hourDiv);
         });
@@ -123,55 +114,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const cachedDataString = sessionStorage.getItem(CACHE_KEY);
             if (cachedDataString) {
                 const cachedData = JSON.parse(cachedDataString);
-                const now = Date.now();
-                if (now - cachedData.timestamp < CACHE_DURATION_MS && cachedData.weather && cachedData.weather.hourly_forecast) {
-                    console.log("Using cached weather data.");
+                if (Date.now() - cachedData.timestamp < CACHE_DURATION_MS && cachedData.weather) {
                     updateWeatherUI(cachedData.weather);
                     userLocation = cachedData.location;
                     suggestionBtn.disabled = false;
                     return;
-                } else {
-                    sessionStorage.removeItem(CACHE_KEY);
-                }
+                } else { sessionStorage.removeItem(CACHE_KEY); }
             }
-        } catch (e) {
-            console.error("Error reading weather cache:", e);
-            sessionStorage.removeItem(CACHE_KEY);
-        }
+        } catch (e) {}
 
-        if (!navigator.geolocation) {
-            showWeatherError('Geolocation is not supported.');
-            return;
-        }
-
+        if (!navigator.geolocation) { showWeatherError('Geolocation not supported.'); return; }
         weatherWidget.classList.add('loading');
-        weatherWidget.classList.remove('clickable', 'error', 'active');
         suggestionBtn.disabled = true;
 
         navigator.geolocation.getCurrentPosition(async (position) => {
             userLocation.lat = position.coords.latitude;
             userLocation.lon = position.coords.longitude;
-
             try {
                 const response = await fetch('/api/weather', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(userLocation)
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userLocation)
                 });
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: `Server error ${response.status}` }));
-                    throw new Error(errorData.error || 'Failed to fetch weather');
-                }
-
+                if (!response.ok) throw new Error('Weather fetch failed');
                 const weatherData = await response.json();
                 sessionStorage.setItem(CACHE_KEY, JSON.stringify({ weather: weatherData, location: userLocation, timestamp: Date.now() }));
-                console.log("Weather data cached.");
                 updateWeatherUI(weatherData);
-            } catch (error) {
-                showWeatherError(error.message);
-            }
-        }, () => showWeatherError('Location permission denied.'));
+            } catch (error) { showWeatherError('Failed to load weather.'); }
+        }, () => showWeatherError('Location denied.'));
     }
 
     weatherWidget.addEventListener('click', () => {
@@ -181,255 +149,235 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // =======================
-    // --- OUTFIT SUGGESTION FUNCTIONS ---
-    // =======================
+    // --- OUTFIT GENERATION ---
     async function getOutfitSuggestion(e) {
-        if (!userLocation.lat || !userLocation.lon) {
-            showWeatherError("Location not available.");
-            fetchWeather();
-            return;
-        }
-
+        if (!userLocation.lat) { fetchWeather(); return; }
         suggestionBtn.disabled = true;
         getAnotherSuggestionBtn.disabled = true;
-        suggestionCard.style.display = 'flex';
-        suggestionCard.classList.add('loading');
-        loadingMessage.style.display = 'block';
-        suggestionContent.style.display = 'none';
-        suggestionCard.classList.remove('error');
+        suggestionCard.classList.remove('hidden');
+        suggestionCard.classList.add('flex');
+        loadingMessage.classList.remove('hidden');
+        suggestionContent.classList.add('hidden');
+        saveOutfitBtn.classList.add('hidden'); // Hide save button while loading
 
         const isSuggestAnother = e && e.currentTarget.id === 'get-another-suggestion-btn';
         const payload = { lat: userLocation.lat, lon: userLocation.lon };
-
-        // FIX: Send the IDs of the last suggested outfit to prevent duplicates
-        if (isSuggestAnother && lastSuggestedOutfit) {
-            payload.exclude_item_ids = lastSuggestedOutfit.map(item => item.id);
-        }
+        if (isSuggestAnother && lastSuggestedOutfit) { payload.exclude_item_ids = lastSuggestedOutfit.map(item => item.id); }
 
         try {
             const response = await fetch('/api/recommendations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
-
-            if (!response.ok) throw new Error(`Server error: ${response.status} ${response.statusText}`);
-
             const result = await response.json();
             if (result.error) throw new Error(result.error);
 
             if (!isSuggestAnother) lastSuggestedOutfit = null;
-
+            
+            // Store result for saving
+            currentDisplayedResult = result; 
             renderOutfitResult(result);
+            saveOutfitBtn.classList.remove('hidden'); // Show save button
+
         } catch (error) {
-            console.error("Recommendation error:", error);
-            suggestionCard.classList.remove('loading');
-            suggestionCard.classList.add('error');
-            loadingMessage.style.display = 'none';
-            suggestionContent.style.display = 'block';
-            suggestionGreeting.textContent = 'Oops! Something went wrong.';
+            loadingMessage.classList.add('hidden');
+            suggestionContent.classList.remove('hidden');
+            suggestionGreeting.textContent = 'Oops!';
             whyItWorksText.textContent = `Error: ${error.message}`;
-            notesText.textContent = 'Please try again.';
-            notesContainer.style.display = 'block';
             outfitDisplayArea.innerHTML = '';
-            lastSuggestedOutfit = null;
         } finally {
             suggestionBtn.disabled = false;
-            getAnotherSuggestionBtn.disabled = suggestionCard.classList.contains('error');
+            getAnotherSuggestionBtn.disabled = false;
         }
     }
 
     function renderOutfitResult(result) {
-        suggestionCard.classList.remove('loading');
-        loadingMessage.style.display = 'none';
-        suggestionContent.style.display = 'block';
+        loadingMessage.classList.add('hidden');
+        suggestionContent.classList.remove('hidden');
 
-        // FIX: Handle missing item suggestion (e.g., "add a black tee")
         if (result.missing_item_suggestion) {
-            suggestionGreeting.textContent = result.greeting || `Heads up! Your wardrobe is limited for this weather. ⚠️`;
-            whyItWorksText.textContent = result.missing_item_suggestion.message || 'No suitable outfit could be generated based on your wardrobe and the current weather.';
-            notesText.textContent = `Suggestion: ${result.missing_item_suggestion.recommendation}`;
-            notesContainer.style.display = 'block';
-            outfitDisplayArea.innerHTML = `<p style="text-align:center; color: #dc3545; font-weight: 600;">Consider adding the suggested item to complete your wardrobe for the weather!</p>`;
-            lastSuggestedOutfit = null;
+            suggestionGreeting.textContent = result.greeting || "Wardrobe Update Needed";
+            whyItWorksText.innerHTML = `<span class="text-red-500 font-bold">Missing:</span> ${result.missing_item_suggestion.message}`;
+            notesText.textContent = `Recommendation: ${result.missing_item_suggestion.recommendation}`;
+            outfitDisplayArea.innerHTML = '';
+            saveOutfitBtn.classList.add('hidden');
             return;
         }
 
         if (result.outfit_details && result.outfit_details.length > 0) {
-            suggestionGreeting.textContent = result.greeting || `Here's a suggestion for you:`;
-            whyItWorksText.textContent = result.why_it_works || 'No explanation provided.';
+            suggestionGreeting.textContent = result.greeting || "Here is your look:";
+            whyItWorksText.textContent = result.why_it_works || '';
             notesText.textContent = result.notes || '';
-            notesContainer.style.display = result.notes ? 'block' : 'none';
+            lastSuggestedOutfit = result.outfit_details.map(item => ({ id: item.id || item.filename }));
+
             outfitDisplayArea.innerHTML = '';
-
-            // Store the outfit IDs for exclusion next time
-            lastSuggestedOutfit = result.outfit_details.map(item => ({ id: item.id || item.filename, name: item.name, category: item.category }));
-
             const fragment = document.createDocumentFragment();
             result.outfit_details.forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'outfit-item';
-                itemDiv.dataset.itemName = item.name;
-                itemDiv.dataset.itemCategory = item.category;
-
-                const imageUrl = item.url || `https://placehold.co/160x180/e9ecef/6c757d?text=${encodeURIComponent(item.name || 'Missing')}`;
-                const altText = item.name || 'Outfit item';
-
+                const imageUrl = item.url || `https://placehold.co/160x180/e2e8f0/64748b?text=${encodeURIComponent(item.name)}`;
                 itemDiv.innerHTML = `
-                    <img src="${imageUrl}" alt="${altText}" class="outfit-item-image" onerror="this.onerror=null; this.src='https://placehold.co/160x180/e9ecef/dc3545?text=Load+Error';">
+                    <img src="${imageUrl}" alt="${item.name}">
                     <div class="outfit-item-info">
-                        <h4>${item.name || 'Unnamed Item'}</h4>
-                        <p>${item.category || 'N/A'}</p>
+                        <h4>${item.name || 'Item'}</h4>
+                        <p>${item.category || ''}</p>
                     </div>
                 `;
-
-                // Item click opens chat to ask for an alternative
-                itemDiv.addEventListener('click', () => openChatWithSuggestion(`Suggest another ${item.category.toLowerCase()} similar to "${item.name}" from my wardrobe.`));
+                itemDiv.addEventListener('click', () => openChatWithSuggestion(`Can you suggest a different ${item.category} instead of the "${item.name}"?`));
                 fragment.appendChild(itemDiv);
             });
-
             outfitDisplayArea.appendChild(fragment);
-        } else {
-            suggestionGreeting.textContent = 'Suggestion Not Available';
-            whyItWorksText.textContent = 'The AI could not generate an outfit. Please upload more items.';
-            notesText.textContent = 'Make sure you have a variety of tops, bottoms, and shoes uploaded.';
-            notesContainer.style.display = 'block';
-            outfitDisplayArea.innerHTML = '';
-            lastSuggestedOutfit = null;
+            
+            // Reset Save Button State
+            saveOutfitBtn.innerHTML = '<i class="fa-regular fa-heart mr-2"></i> Save Look';
+            saveOutfitBtn.classList.remove('text-red-500', 'bg-red-50', 'border-red-200');
+            saveOutfitBtn.disabled = false;
         }
-
-        getAnotherSuggestionBtn.disabled = false;
     }
 
     suggestionBtn.addEventListener('click', getOutfitSuggestion);
     getAnotherSuggestionBtn.addEventListener('click', getOutfitSuggestion);
 
-    // =======================
-    // --- CHAT FUNCTIONS ---
-    // =======================
-    fab.addEventListener('click', () => chatWidget.classList.add('open'));
-    closeBtn.addEventListener('click', () => chatWidget.classList.remove('open'));
-    attachmentBtn.addEventListener('click', () => fileInput.click());
-    removeAttachmentBtn.addEventListener('click', removeAttachment);
+    // --- SAVED OUTFITS (BUBBLES) ---
+    saveOutfitBtn.addEventListener('click', () => {
+        if (!currentDisplayedResult || !currentDisplayedResult.outfit_details) return;
 
-    fileInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
+        // Visual feedback on button
+        saveOutfitBtn.innerHTML = '<i class="fa-solid fa-heart mr-2"></i> Saved';
+        saveOutfitBtn.classList.add('text-red-500', 'bg-red-50', 'border-red-200');
+        saveOutfitBtn.disabled = true;
+
+        createSavedBubble(currentDisplayedResult);
+    });
+
+    function createSavedBubble(outfitData) {
+        // Use the first item's image as the thumbnail
+        const thumbnailItem = outfitData.outfit_details[0];
+        const imageUrl = thumbnailItem.url || 'https://placehold.co/100x100';
+
+        // Create Bubble Wrapper
+        const bubble = document.createElement('div');
+        // FIX: Applying explicit Tailwind sizing classes here to prevent huge images
+        bubble.className = 'w-14 h-14 rounded-full border-2 border-white shadow-lg cursor-pointer overflow-hidden hover:scale-110 transition-transform relative bg-white animate-pop-in';
+        
+        // Create Image
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.className = 'w-full h-full object-cover';
+        
+        bubble.appendChild(img);
+        
+        // Add click listener to restore this outfit
+        bubble.addEventListener('click', () => {
+            // Scroll up to viewing area
+            window.scrollTo({ top: weatherWidget.offsetHeight, behavior: 'smooth' });
+            // Re-render this specific outfit
+            currentDisplayedResult = outfitData;
+            renderOutfitResult(outfitData);
+            // Update save button to show it's already saved
+            saveOutfitBtn.innerHTML = '<i class="fa-solid fa-heart mr-2"></i> Saved';
+            saveOutfitBtn.classList.add('text-red-500', 'bg-red-50', 'border-red-200');
+            saveOutfitBtn.disabled = true;
+        });
+
+        savedOutfitsContainer.appendChild(bubble);
+    }
+
+    // --- CHAT LOGIC ---
+    const toggleChat = () => {
+        chatWidget.classList.toggle('open');
+        const icon = fab.querySelector('i');
+        icon.className = chatWidget.classList.contains('open') ? 'fa-solid fa-chevron-down' : 'fa-solid fa-comment-dots';
+        if(chatWidget.classList.contains('open')) setTimeout(() => chatInput.focus(), 300);
+    };
+
+    fab.addEventListener('click', toggleChat);
+    closeBtn.addEventListener('click', toggleChat);
+    attachmentBtn.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onloadend = () => {
                 attachedImageBase64 = reader.result;
                 previewImage.src = reader.result;
-                attachmentPreview.style.display = 'block';
-            }
+                attachmentPreview.classList.remove('hidden');
+            };
             reader.readAsDataURL(file);
-        } else removeAttachment();
+        }
         fileInput.value = '';
     });
 
-    function removeAttachment() {
+    removeAttachmentBtn.addEventListener('click', () => {
         attachedImageBase64 = null;
         previewImage.src = '#';
-        attachmentPreview.style.display = 'none';
-        fileInput.value = '';
-    }
-    
-    // FIX: Modified to support Markdown-like formatting for bot messages
+        attachmentPreview.classList.add('hidden');
+    });
+
     function addChatMessage(sender, message, imageBase64 = null) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${sender}`;
-        
         if (imageBase64) {
             const img = document.createElement('img');
             img.src = imageBase64;
             img.className = 'chat-image';
-            img.alt = 'User attachment';
             msgDiv.appendChild(img);
         }
-        
-        // Div to hold the message content
-        const textContentDiv = document.createElement('div');
-
-        if (message) {
-            if (sender === 'bot') {
-                // Simple Markdown to HTML conversion for formatting (bold/line breaks)
-                let htmlMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // **Bold**
-                htmlMessage = htmlMessage.replace(/\n/g, '<br>'); // Newlines
-                textContentDiv.innerHTML = htmlMessage;
-            } else {
-                // For user messages, stick to safe text node
-                textContentDiv.textContent = message;
-            }
+        const textDiv = document.createElement('div');
+        if (sender === 'bot') {
+            textDiv.innerHTML = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        } else {
+            textDiv.textContent = message;
         }
-        
-        msgDiv.appendChild(textContentDiv);
+        msgDiv.appendChild(textDiv);
         chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // GENTLE SCROLL: Only snap to bottom if we are already near the bottom
+        // or if it's the user's own message.
+        const isNearBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 100;
+        if (sender === 'user' || isNearBottom) {
+            chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+        }
         return msgDiv;
     }
 
-    function openChatWithSuggestion(message) {
-        chatWidget.classList.add('open');
-        chatInput.value = message;
+    function openChatWithSuggestion(text) {
+        if (!chatWidget.classList.contains('open')) toggleChat();
+        chatInput.value = text;
         chatInput.focus();
     }
 
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const userMessage = chatInput.value.trim();
-        if (!userMessage && !attachedImageBase64) return;
+        const text = chatInput.value.trim();
+        if (!text && !attachedImageBase64) return;
 
-        addChatMessage('user', userMessage, attachedImageBase64);
+        addChatMessage('user', text, attachedImageBase64);
         chatInput.value = '';
-        removeAttachment();
+        const tempImage = attachedImageBase64;
+        attachedImageBase64 = null;
+        attachmentPreview.classList.add('hidden');
 
-        const typingIndicator = addChatMessage('bot typing', '...');
+        const typingDiv = addChatMessage('bot', '...');
+        typingDiv.classList.add('animate-pulse');
 
         try {
-            const payload = { prompt: userMessage || "Describe this image." };
-            if (attachedImageBase64) payload.imageBase64 = attachedImageBase64;
-            if (userLocation.lat && userLocation.lon) payload.currentWeather = userLocation;
-
-            // CRITICAL: Fetching Wardrobe Context for Chatbot Consistency
-            try {
-                const wardrobeResponse = await fetch('/api/wardrobe');
-                if (wardrobeResponse.ok) {
-                    const wardrobeItems = await wardrobeResponse.json();
-                    // Pass simplified details to the server
-                    payload.wardrobeContext = wardrobeItems.map(item => ({ 
-                        id: item.id, 
-                        name: item.name, 
-                        category: item.category, 
-                        description: item.description 
-                    }));
-                }
-            } catch (wardrobeError) { console.error("Wardrobe fetch error:", wardrobeError); }
-
+            const payload = { prompt: text || "Describe this image.", imageBase64: tempImage };
+            if (userLocation.lat) payload.currentWeather = userLocation;
             if (lastSuggestedOutfit) payload.lastSuggestedOutfit = lastSuggestedOutfit;
 
             const response = await fetch('/api/chatbot', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
-
-            if (!response.ok) throw new Error(`Chatbot error: ${response.status} ${response.statusText}`);
             const result = await response.json();
+            typingDiv.remove();
             if (result.error) throw new Error(result.error);
-
-            // FIX: Remove 'typing' indicator and show final formatted response
-            typingIndicator.remove();
-            addChatMessage('bot', result.response || "Received empty response.");
-            
+            addChatMessage('bot', result.response || "I'm not sure how to answer that.");
         } catch (error) {
-            console.error("Chatbot submit error:", error);
-            typingIndicator.textContent = `Error: ${error.message}`;
-            typingIndicator.classList.add('bot', 'error');
+            typingDiv.remove();
+            addChatMessage('bot', `Error: ${error.message}`);
         }
     });
 
-    // =======================
-    // --- INITIAL LOAD ---
-    // =======================
     fetchWeather();
 });

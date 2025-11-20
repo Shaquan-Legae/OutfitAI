@@ -4,157 +4,286 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Wardrobe - OutfitAI</title>
-  <link rel="stylesheet" href="/static/css/common.css">
-  <link rel="stylesheet" href="/static/css/wardrobe.css">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            primary: '#4F46E5', // Indigo 600
+            primaryHover: '#4338CA', // Indigo 700
+            secondary: '#64748B', // Slate 500
+            laundry: '#F59E0B', // Amber 500
+          }
+        }
+      }
+    }
+  </script>
+
+  <style type="text/tailwindcss">
+    @layer components {
+      /* Base Card Style */
+      .card {
+        @apply bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden;
+      }
+      
+      /* Standard Button */
+      .btn {
+        @apply inline-flex justify-center items-center px-4 py-2 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2;
+      }
+      .btn-primary {
+        @apply bg-primary text-white hover:bg-primaryHover focus:ring-primary shadow-md shadow-indigo-200;
+      }
+      .btn-secondary {
+        @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-slate-200;
+      }
+      .btn-danger {
+        @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+      }
+
+      /* Form Inputs */
+      .form-input {
+        @apply mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm shadow-sm placeholder-slate-400
+        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:bg-slate-50 disabled:text-slate-500;
+      }
+
+      /* --- DYNAMIC JS CLASSES --- 
+         These styles ensure elements created by your wardrobe.js 
+         look good without rewriting the JS.
+      */
+      
+      .item-card {
+        @apply relative group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-md aspect-[3/4];
+      }
+      
+      .item-card img {
+        @apply w-full h-full object-cover;
+      }
+
+      /* Laundry State */
+      .item-card.is-laundry {
+        @apply border-amber-400 ring-2 ring-amber-100 opacity-75 grayscale-[0.5];
+      }
+      
+      /* Buttons injected by JS on cards */
+      .item-card .delete-button {
+        @apply absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600 cursor-pointer border-none;
+      }
+      
+      .item-card .status-toggle-button {
+        @apply absolute bottom-2 left-2 right-2 py-1.5 bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-semibold rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white cursor-pointer border border-slate-200;
+      }
+      
+      .item-card.is-laundry .status-toggle-button {
+        @apply bg-amber-100 text-amber-800 border-amber-200 opacity-100; 
+      }
+    }
+
+    /* Custom Scrollbar for Laundry Carousel */
+    .hide-scroll::-webkit-scrollbar {
+      height: 6px;
+    }
+    .hide-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .hide-scroll::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 20px;
+    }
+  </style>
 </head>
-<body>
-  <!-- Navigation -->
-  <nav>
-    <div class="logo">
-      <a href="/">OutfitAI</a>
-    </div>
-    <div class="links">
-      <a href="/">Home</a>
-      <a href="/wardrobe" class="active">My Wardrobe</a>
-      <a href="/recommendations">Suggestions</a>
-    </div>
-    <div class="user-info">
-      <span>Welcome, {{ user.name }}!</span>
-      <a href="/logout">Logout</a>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-700">
+
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center gap-8">
+          <a href="/" class="flex-shrink-0 flex items-center gap-2">
+            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
+              <i class="fa-solid fa-shirt"></i>
+            </div>
+            <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+              OutfitAI
+            </span>
+          </a>
+          <div class="hidden sm:flex sm:space-x-4">
+            <a href="/" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">Home</a>
+            <a href="/wardrobe" class="text-primary bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium" aria-current="page">My Wardrobe</a>
+            <a href="/recommendations" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">Suggestions</a>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-sm text-slate-600 hidden md:block">Welcome, <span class="font-semibold text-slate-900">{{ user.name }}</span></span>
+          <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition-colors">
+            <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Logout
+          </a>
+        </div>
+      </div>
     </div>
   </nav>
 
-  <!-- Page Header -->
-  <div class="page-header">
-    <h1>My Wardrobe</h1>
-  </div>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-slate-900 tracking-tight">My Wardrobe</h1>
+      <p class="mt-2 text-slate-500">Manage your collection, add new finds, and track laundry.</p>
+    </div>
 
-  <!-- Main Layout -->
-  <div class="wardrobe-container">
-    <!-- Left Sidebar: Upload + Laundry -->
-    <div class="wardrobe-side-panels">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       
-      <!-- Upload Panel -->
-      <div class="upload-panel card">
-        <h2>Add New Item</h2>
-        <form id="upload-form">
-          <div id="drop-zone">
-            <p>Drag & drop an image here</p>
-            <p style="font-size: 0.9rem; margin-top: 4px;">or click to select file</p>
+      <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
+        
+        <div class="card p-6">
+          <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up text-primary"></i> Add New Item
+          </h2>
+          
+          <form id="upload-form">
+            <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-indigo-50/50 transition-all group">
+              <div class="flex flex-col items-center justify-center pt-2 pb-3">
+                <i class="fa-solid fa-image text-3xl text-slate-300 mb-3 group-hover:text-primary transition-colors"></i>
+                <p class="text-sm text-slate-600 font-medium">Click or drag image here</p>
+                <p class="text-xs text-slate-400 mt-1">Supports JPG, PNG</p>
+              </div>
+            </div>
+            <input type="file" id="file-input" name="file" accept="image/*" class="hidden">
+
+            <div id="preview-area" class="hidden mt-4 relative">
+              <img id="image-preview" src="#" alt="Preview" class="w-full h-48 object-cover rounded-lg border border-slate-200 shadow-sm">
+              <button type="button" id="cancel-preview" class="absolute top-2 right-2 bg-white/90 text-slate-700 rounded-full w-8 h-8 flex items-center justify-center shadow-sm hover:text-red-600 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div id="item-details-form" class="hidden space-y-4 mt-6 animate-fade-in-down">
+              <div>
+                <label for="item-name" class="block text-sm font-medium text-slate-700">Item Name</label>
+                <input type="text" id="item-name" name="item_name" required placeholder="e.g. Vintage Denim Jacket" class="form-input">
+              </div>
+
+              <div>
+                <label for="item-category" class="block text-sm font-medium text-slate-700">Category</label>
+                <div class="relative">
+                  <select id="item-category" name="item_category" required class="form-input appearance-none">
+                    <option value="" disabled selected>Select a category...</option>
+                    <option value="Tops">Tops</option>
+                    <option value="Sweaters & Hoodies">Sweaters & Hoodies</option>
+                    <option value="Jackets & Coats">Jackets & Coats</option>
+                    <option value="Pants">Pants</option>
+                    <option value="Shorts & Skirts">Shorts & Skirts</option>
+                    <option value="Dresses & Jumpsuits">Dresses & Jumpsuits</option>
+                    <option value="Shoes">Shoes</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <input type="checkbox" id="in-laundry-checkbox" name="in_laundry" class="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500">
+                <label for="in-laundry-checkbox" class="text-sm text-slate-700 select-none">Mark as "In Laundry"</label>
+              </div>
+
+              <button type="submit" id="submit-button" class="btn btn-primary w-full" disabled>
+                <i class="fa-solid fa-plus mr-2"></i> Add to Wardrobe
+              </button>
+            </div>
+
+            <p id="upload-status" class="text-center text-sm mt-3 font-medium"></p>
+          </form>
+        </div>
+
+        <div id="laundry-basket-card" class="card p-6 border-l-4 border-l-amber-400">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-slate-900">Laundry Basket</h2>
+            <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded-full">Cleaning</span>
           </div>
-          <input type="file" id="file-input" name="file" accept="image/*">
 
-          <!-- Preview -->
-          <div id="preview-area">
-            <img id="image-preview" src="#" alt="Image preview">
-            <button type="button" id="cancel-preview" class="button btn-secondary">Cancel</button>
-          </div>
+          <div class="relative group/carousel">
+            <button id="laundry-scroll-left" class="absolute -left-3 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full w-8 h-8 flex items-center justify-center text-slate-600 hover:text-primary opacity-0 group-hover/carousel:opacity-100 transition-opacity disabled:opacity-0">
+              <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
 
-          <!-- Item Details -->
-          <div id="item-details-form">
-            <div class="form-group">
-              <label for="item-name">Item Name</label>
-              <input
-                type="text"
-                id="item-name"
-                name="item_name"
-                required
-                placeholder="e.g., Blue Denim Jacket"
-              >
-            </div>
+            <div id="laundry-items-carousel" class="flex gap-4 overflow-x-auto hide-scroll pb-4 scroll-smooth snap-x">
+              </div>
 
-            <div class="form-group">
-              <label for="item-category">Category</label>
-              <select id="item-category" name="item_category" required>
-                <option value="" disabled selected>-- Select Category --</option>
-                <option value="Tops">Tops (T-Shirts, Shirts, Blouses)</option>
-                <option value="Sweaters & Hoodies">Sweaters & Hoodies</option>
-                <option value="Jackets & Coats">Jackets & Coats</option>
-                <option value="Pants">Pants (Jeans, Trousers, Chinos)</option>
-                <option value="Shorts & Skirts">Shorts & Skirts</option>
-                <option value="Dresses & Jumpsuits">Dresses & Jumpsuits</option>
-                <option value="Shoes">Shoes (Sneakers, Boots, Sandals)</option>
-                <option value="Accessories">Accessories (Hats, Bags, Scarves)</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <!-- Laundry Status -->
-            <div class="form-group status-checkbox-group">
-              <input type="checkbox" id="in-laundry-checkbox" name="in_laundry">
-              <label for="in-laundry-checkbox">Mark as "In Laundry" (Unavailable)</label>
-            </div>
-
-            <button type="submit" id="submit-button" class="button" disabled>
-              Add to Wardrobe
+            <button id="laundry-scroll-right" class="absolute -right-3 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full w-8 h-8 flex items-center justify-center text-slate-600 hover:text-primary opacity-0 group-hover/carousel:opacity-100 transition-opacity disabled:opacity-0">
+              <i class="fa-solid fa-chevron-right text-xs"></i>
             </button>
           </div>
 
-          <p id="upload-status"></p>
-        </form>
-      </div>
-
-      <!-- Laundry Basket Card -->
-      <div id="laundry-basket-card" class="card laundry-card">
-        <h2>Laundry Basket</h2>
-
-        <div class="laundry-carousel-wrapper">
-          <!-- Left Arrow -->
-          <button class="carousel-nav-btn left" id="laundry-scroll-left" aria-label="Scroll left">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
-          </button>
-
-          <!-- Carousel -->
-          <div id="laundry-items-carousel" class="item-carousel hide-scroll">
-            <!-- Items injected by JS -->
-          </div>
-
-          <!-- Right Arrow -->
-          <button class="carousel-nav-btn right" id="laundry-scroll-right" aria-label="Scroll right">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
-          </button>
+          <p id="laundry-empty" class="text-sm text-slate-400 italic text-center py-4 hidden">
+            Your basket is empty. Good job!
+          </p>
         </div>
-
-        <p id="laundry-empty" class="section-empty-message" style="display: none;">
-          Your basket is clean!
-        </p>
       </div>
 
-    </div>
-
-    <!-- Main Gallery -->
-    <div class="card" id="wardrobe-gallery">
-      <h2>Your Available Items</h2>
-      <div id="gallery-container">
-        <p id="gallery-loading" class="section-loading-message">
-          Loading your wardrobe...
-        </p>
-        <p id="gallery-empty" class="section-empty-message" style="display: none;">
-          Your wardrobe is empty. Upload an item!
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Delete Confirmation Modal -->
-  <div class="modal-overlay" id="delete-modal">
-    <div class="modal-content">
-      <h3>Delete Item</h3>
-      <p>Are you sure you want to permanently delete this item?</p>
-      <div class="modal-buttons">
-        <button class="button btn-secondary" id="modal-cancel">Cancel</button>
-        <button class="button btn-danger" id="modal-confirm">Delete</button>
+      <div class="lg:col-span-8">
+        <div class="card p-6 min-h-[600px]">
+          <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+            <h2 class="text-xl font-semibold text-slate-900">Available Items</h2>
+            <div class="flex gap-2">
+               <button class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full transition-colors">All</button>
+               <button class="text-xs bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-3 py-1.5 rounded-full transition-colors">Tops</button>
+            </div>
+          </div>
+          
+          <div id="gallery-container" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div id="gallery-loading" class="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
+              <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-indigo-400"></i>
+              <p>Loading your wardrobe...</p>
+            </div>
+            
+            <div id="gallery-empty" class="hidden col-span-full text-center py-20">
+              <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-hanger text-2xl text-slate-400"></i>
+              </div>
+              <h3 class="text-slate-900 font-medium">Your wardrobe is empty</h3>
+              <p class="text-slate-500 text-sm mt-1">Upload an item on the left to get started.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- JavaScript -->
+  <div id="delete-modal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
+
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+          <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+              <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
+              </div>
+              <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                <h3 class="text-base font-semibold leading-6 text-slate-900" id="modal-title">Delete Item</h3>
+                <div class="mt-2">
+                  <p class="text-sm text-slate-500">Are you sure you want to permanently delete this item? This action cannot be undone.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+            <button id="modal-confirm" type="button" class="btn btn-danger w-full sm:w-auto sm:ml-3">Delete</button>
+            <button id="modal-cancel" type="button" class="btn btn-secondary w-full sm:w-auto mt-3 sm:mt-0">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/static/js/wardrobe.js"></script>
 </body>
 </html>
