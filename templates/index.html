@@ -1,150 +1,253 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Updated CSP to allow weather images and data URIs -->
-    <meta http-equiv="Content-Security-Policy"
-        content="img-src https://cdn.weatherapi.com data:; object-src 'none'; script-src 'self' '/static/js/index.js'">
+    <meta http-equiv="Content-Security-Policy" content="img-src https://cdn.weatherapi.com data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;">
+    
     <title>Dashboard - OutfitAI</title>
-    <link rel="stylesheet" href="/static/css/index.css">
-    <link rel="stylesheet" href="/static/css/common.css">
-</head>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<body>
-    <nav>
-        <div class="logo"><a href="/">OutfitAI</a></div>
-        <div class="links">
-            <a href="/" class="active">Home</a>
-            <a href="/wardrobe">My Wardrobe</a>
-            <a href="/recommendations">Suggestions</a>
-        </div>
-        <div class="user-info">
-            <span>Welcome, {{ user.name }}!</span>
-            <a href="/logout">Logout</a>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: '#4F46E5', // Indigo 600
+                        primaryHover: '#4338CA', // Indigo 700
+                        weatherFrom: '#3B82F6', // Blue 500
+                        weatherTo: '#4F46E5',   // Indigo 600
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer components {
+            /* --- WEATHER WIDGET TRANSITIONS --- */
+            /* These classes ensure the JS toggles work with Tailwind styles */
+            
+            .weather-card {
+                @apply relative overflow-hidden rounded-2xl bg-gradient-to-br from-weatherFrom to-weatherTo text-white shadow-lg transition-all duration-300 p-6 sm:p-8 z-20;
+            }
+
+            /* State: Loading */
+            .weather-card.loading {
+                @apply from-slate-100 to-slate-200 text-slate-400 cursor-wait shadow-none;
+            }
+
+            /* State: Error */
+            .weather-card.error {
+                @apply from-red-500 to-red-600 text-white;
+            }
+
+            /* State: Clickable (Default) */
+            .weather-card.clickable {
+                @apply cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-200;
+            }
+
+            /* State: Active (Expanded) */
+            .weather-card.active {
+                @apply rounded-b-none hover:translate-y-0 shadow-none;
+            }
+
+            /* --- EXTRA DETAILS PANEL --- */
+            /* The sliding panel logic */
+            #weather-extra-details {
+                @apply bg-white border-x border-b border-slate-200 rounded-b-2xl shadow-md -mt-1 z-10 overflow-hidden max-h-0 opacity-0 transition-all duration-500 ease-in-out;
+            }
+
+            #weather-extra-details.open {
+                @apply max-h-[800px] opacity-100 py-6 px-6 sm:px-8;
+            }
+
+            /* --- HOURLY ITEMS (Injected by JS) --- */
+            /* Styles for elements created dynamically in index.js */
+            .hour-item {
+                @apply flex-none w-[70px] flex flex-col items-center justify-center py-3 bg-slate-50 rounded-xl border border-slate-100 snap-center;
+            }
+            .hour-item .hour-time {
+                @apply text-xs font-semibold text-slate-500 mb-1;
+            }
+            .hour-item img {
+                @apply w-8 h-8 my-1 drop-shadow-sm;
+            }
+            .hour-item .hour-temp {
+                @apply text-sm font-bold text-slate-800;
+            }
+            .hour-item .hour-rain {
+                @apply text-[10px] text-blue-500 font-medium flex items-center gap-0.5 mt-1;
+            }
+
+            /* Hide Scrollbar utility */
+            .hide-scroll::-webkit-scrollbar {
+                height: 0px;
+                background: transparent;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-8">
+                    <a href="/" class="flex-shrink-0 flex items-center gap-2">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
+                            <i class="fa-solid fa-shirt"></i>
+                        </div>
+                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+                            OutfitAI
+                        </span>
+                    </a>
+                    <div class="hidden sm:flex sm:space-x-4">
+                        <a href="/" class="text-primary bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium" aria-current="page">Home</a>
+                        <a href="/wardrobe" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">My Wardrobe</a>
+                        <a href="/recommendations" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">Suggestions</a>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-slate-600 hidden md:block">Welcome, <span class="font-semibold text-slate-900">{{ user.name }}</span></span>
+                    <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition-colors">
+                        <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Logout
+                    </a>
+                </div>
+            </div>
         </div>
     </nav>
 
-    <div class="content">
-        <div class="card">
-            <h1>{{ greeting }}, {{ user.name }}!</h1>
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+        
+        <div class="mb-8 text-center sm:text-left">
+            <h1 class="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-2">
+                {{ greeting }}, <span class="text-primary">{{ user.name }}</span>!
+            </h1>
+            <p class="text-slate-500 text-lg">Here is your daily forecast and wardrobe status.</p>
+        </div>
 
-            <!-- Weather Container -->
-            <div class="weather-container">
-                <div id="weather-widget" class="weather-card loading clickable">
-                    <div class="weather-main">
-                        <div class="weather-icon"></div>
-                        <div class="weather-details">
-                            <span class="weather-temp">--°C</span>
-                            <span class="weather-desc">Loading weather...</span>
-                        </div>
-                    </div>
-                    <div class="weather-extra">
-                        <span class="weather-city">Detecting location...</span>
-                        <span class="weather-feels-like">Feels like: --°C</span>
-                    </div>
-                </div>
-
-                <div id="weather-extra-details">
-                    <div class="current-details-grid">
-                        <div class="detail-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
-                            </svg>
-                            <div class="detail-item-content">
-                                <span class="detail-item-label">Wind</span>
-                                <span class="detail-item-value" id="data-wind">-- kph</span>
+        <div class="weather-container mb-10">
+            
+            <div id="weather-widget" class="weather-card loading clickable group">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-6">
+                    
+                    <div class="flex items-center gap-6">
+                        <div class="weather-icon relative">
+                            <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center shadow-inner backdrop-blur-sm">
+                                <i class="fa-solid fa-cloud text-3xl opacity-50"></i>
                             </div>
                         </div>
-                        <div class="detail-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path
-                                    d="M12 2.69l.1-.1a4.95 4.95 0 0 1 7 7L12 21l-7.1-11.41a4.95 4.95 0 0 1 7-7L12 2.69zM12 18a2 2 0 0 0 0-4 2 2 0 0 0 0 4z" />
-                            </svg>
-                            <div class="detail-item-content">
-                                <span class="detail-item-label">Humidity</span>
-                                <span class="detail-item-value" id="data-humidity">-- %</span>
-                            </div>
-                        </div>
-                        <div class="detail-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                                <circle cx="12" cy="12" r="3" />
-                            </svg>
-                            <div class="detail-item-content">
-                                <span class="detail-item-label">Visibility</span>
-                                <span class="detail-item-value" id="data-vis">-- km</span>
-                            </div>
-                        </div>
-                        <div class="detail-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="4" />
-                                <path d="M12 2v2" />
-                                <path d="M12 20v2" />
-                                <path d="m4.93 4.93 1.41 1.41" />
-                                <path d="m17.66 17.66 1.41 1.41" />
-                                <path d="M2 12h2" />
-                                <path d="M20 12h2" />
-                                <path d="m6.34 17.66-1.41 1.41" />
-                                <path d="m19.07 4.93-1.41 1.41" />
-                            </svg>
-                            <div class="detail-item-content">
-                                <span class="detail-item-label">UV Index</span>
-                                <span class="detail-item-value" id="data-uv">--</span>
-                            </div>
+                        <div class="weather-details text-center sm:text-left">
+                            <span class="weather-temp block text-5xl sm:text-6xl font-bold tracking-tight">--°</span>
+                            <span class="weather-desc block text-lg font-medium opacity-90 mt-1">Loading weather...</span>
                         </div>
                     </div>
 
-                    <div class="hourly-forecast-section">
-                        <h4>Hourly Forecast</h4>
-                        <div class="hourly-forecast-container" id="hourly-forecast-container">
-                            <span class="loading-hourly">Loading hourly data...</span>
+                    <div class="weather-extra text-center sm:text-right">
+                        <span class="weather-city block text-2xl font-semibold">Detecting...</span>
+                        <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-full px-3 py-1 mt-2 text-sm font-medium">
+                             <i class="fa-solid fa-temperature-half text-xs"></i>
+                             <span class="weather-feels-like">Feels like: --°C</span>
                         </div>
-                    </div>
-
-                    <div class="astro-section">
-                        <div class="astro-item">
-                            <svg id="sunrise-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M12 2v8" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path
-                                    d="m17.66 12.34 1.41-1.41" /><path d="M22 22H2" /><path d="M16 18a4 4 0 0 0-8 0" /></svg>
-                            <span class="astro-label">Sunrise</span>
-                            <span class="astro-time" id="sunrise-time">--:-- --</span>
-                        </div>
-                        <div class="astro-item">
-                            <svg id="sunset-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M12 10V2" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path
-                                    d="m17.66 12.34 1.41-1.41" /><path d="M22 22H2" /><path d="M16 18a4 4 0 0 0-8 0" /></svg>
-                            <span class="astro-label">Sunset</span>
-                            <span class="astro-time" id="sunset-time">--:-- --</span>
+                        <div class="mt-3 text-xs opacity-75 font-medium uppercase tracking-wider flex items-center justify-center sm:justify-end gap-1 group-hover:translate-x-1 transition-transform">
+                            Click for details <i class="fa-solid fa-chevron-down"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <p>This is your main hub. From here, you can manage your wardrobe or get new outfit suggestions.</p>
+            <div id="weather-extra-details">
+                
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8 pb-8 border-b border-slate-100">
+                    <div class="detail-item flex items-start gap-3">
+                        <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" /></svg>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Wind</span>
+                            <span class="block text-lg font-bold text-slate-800" id="data-wind">-- kph</span>
+                        </div>
+                    </div>
 
-            <h2>What's next?</h2>
-            <p>Your first step is to add clothes to your digital wardrobe.</p>
-            <a href="/wardrobe" class="action-button">
-                Go to My Wardrobe
+                    <div class="detail-item flex items-start gap-3">
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2.69l.1-.1a4.95 4.95 0 0 1 7 7L12 21l-7.1-11.41a4.95 4.95 0 0 1 7-7L12 2.69zM12 18a2 2 0 0 0 0-4 2 2 0 0 0 0 4z" /></svg>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Humidity</span>
+                            <span class="block text-lg font-bold text-slate-800" id="data-humidity">-- %</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-item flex items-start gap-3">
+                        <div class="p-2 bg-teal-50 rounded-lg text-teal-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Visibility</span>
+                            <span class="block text-lg font-bold text-slate-800" id="data-vis">-- km</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-item flex items-start gap-3">
+                        <div class="p-2 bg-amber-50 rounded-lg text-amber-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wide">UV Index</span>
+                            <span class="block text-lg font-bold text-slate-800" id="data-uv">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <h4 class="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                        <i class="fa-regular fa-clock text-slate-400"></i> Hourly Forecast
+                    </h4>
+                    <div class="hourly-forecast-container hide-scroll flex gap-3 overflow-x-auto pb-2 snap-x" id="hourly-forecast-container">
+                        <span class="loading-hourly text-slate-400 text-sm italic w-full text-center py-4">Loading hourly data...</span>
+                    </div>
+                </div>
+
+                <div class="astro-section flex justify-center sm:justify-start gap-12 pt-2">
+                    <div class="astro-item flex items-center gap-3">
+                        <svg id="sunrise-icon" class="w-10 h-10 text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2v8" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m17.66 12.34 1.41-1.41" /><path d="M22 22H2" /><path d="M16 18a4 4 0 0 0-8 0" /></svg>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-400 uppercase">Sunrise</span>
+                            <span class="block text-base font-bold text-slate-800" id="sunrise-time">--:--</span>
+                        </div>
+                    </div>
+                    <div class="astro-item flex items-center gap-3">
+                        <svg id="sunset-icon" class="w-10 h-10 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 10V2" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m17.66 12.34 1.41-1.41" /><path d="M22 22H2" /><path d="M16 18a4 4 0 0 0-8 0" /></svg>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-400 uppercase">Sunset</span>
+                            <span class="block text-base font-bold text-slate-800" id="sunset-time">--:--</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 mb-2">What's next?</h2>
+                <p class="text-slate-500">Manage your clothes or get a fresh outfit idea for this weather.</p>
+            </div>
+            <a href="/wardrobe" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-primary hover:bg-primaryHover shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <i class="fa-solid fa-shirt mr-2"></i> Go to My Wardrobe
             </a>
         </div>
+
     </div>
 
     <script src="/static/js/index.js"></script>
 </body>
-
 </html>
