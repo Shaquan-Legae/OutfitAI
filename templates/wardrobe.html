@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Wardrobe - OutfitAI</title>
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <script>
@@ -17,10 +16,19 @@
         extend: {
           fontFamily: { sans: ['Inter', 'sans-serif'] },
           colors: {
-            primary: '#4F46E5', // Indigo 600
-            primaryHover: '#4338CA', // Indigo 700
-            secondary: '#64748B', // Slate 500
-            laundry: '#F59E0B', // Amber 500
+            primary: '#4F46E5',
+            primaryHover: '#4338CA',
+            secondary: '#64748B',
+            laundry: '#F59E0B',
+            surface: '#F1F5F9',
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-out forwards',
+            'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+            slideUp: { '0%': { transform: 'translateY(100%)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
           }
         }
       }
@@ -29,226 +37,223 @@
 
   <style type="text/tailwindcss">
     @layer components {
-      /* Base Card Style */
-      .card {
-        @apply bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden;
-      }
+      /* Layout Utils */
+      .card { @apply bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden; }
       
-      /* Standard Button */
-      .btn {
-        @apply inline-flex justify-center items-center px-4 py-2 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2;
-      }
-      .btn-primary {
-        @apply bg-primary text-white hover:bg-primaryHover focus:ring-primary shadow-md shadow-indigo-200;
-      }
-      .btn-secondary {
-        @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-slate-200;
-      }
-      .btn-danger {
-        @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
-      }
+      /* Buttons */
+      .btn { @apply inline-flex justify-center items-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed; }
+      .btn-primary { @apply bg-primary text-white hover:bg-primaryHover shadow-md shadow-indigo-100 focus:ring-primary; }
+      .btn-secondary { @apply bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-200; }
+      
+      /* Inputs */
+      .form-input { @apply mt-1 block w-full px-4 py-2.5 bg-surface border border-slate-200 rounded-xl text-sm text-slate-800 shadow-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all; }
 
-      /* Form Inputs */
-      .form-input {
-        @apply mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm shadow-sm placeholder-slate-400
-        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:bg-slate-50 disabled:text-slate-500;
+      /* --- ITEM CARD (Optimized for Carousels) --- */
+      /* Fixed width w-32 (128px) x h-40 (160px) */
+      .item-card { 
+        @apply relative group bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm transition-all duration-300 flex-shrink-0 w-32 h-40 snap-start select-none cursor-pointer; 
       }
+      
+      .item-card:hover { @apply -translate-y-2 shadow-lg ring-2 ring-primary/10; }
+      .item-card img { @apply w-full h-full object-cover transition-transform duration-500 group-hover:scale-110; }
+      
+      /* Overlay */
+      .item-card-overlay {
+        @apply absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left;
+      }
+      
+      .item-name { @apply text-xs font-bold text-white truncate translate-y-2 group-hover:translate-y-0 transition-transform duration-300 delay-75; }
 
-      /* --- DYNAMIC JS CLASSES --- 
-         These styles ensure elements created by your wardrobe.js 
-         look good without rewriting the JS.
-      */
-      
-      .item-card {
-        @apply relative group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-md aspect-[3/4];
+      /* Selection Checkbox */
+      .select-checkbox {
+        @apply absolute top-2 left-2 z-30 w-5 h-5 rounded-full border border-white/40 bg-black/40 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm scale-90;
       }
       
-      .item-card img {
-        @apply w-full h-full object-cover;
-      }
+      /* Selected State */
+      .item-card.selected { @apply ring-2 ring-primary border-primary translate-y-[-4px]; }
+      .item-card.selected .select-checkbox { @apply opacity-100 bg-primary border-primary scale-100; }
+      .item-card.selected .item-card-overlay { @apply opacity-100; }
 
       /* Laundry State */
-      .item-card.is-laundry {
-        @apply border-amber-400 ring-2 ring-amber-100 opacity-75 grayscale-[0.5];
-      }
-      
-      /* Buttons injected by JS on cards */
-      .item-card .delete-button {
-        @apply absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600 cursor-pointer border-none;
-      }
-      
-      .item-card .status-toggle-button {
-        @apply absolute bottom-2 left-2 right-2 py-1.5 bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-semibold rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white cursor-pointer border border-slate-200;
-      }
-      
-      .item-card.is-laundry .status-toggle-button {
-        @apply bg-amber-100 text-amber-800 border-amber-200 opacity-100; 
-      }
-    }
+      .item-card.is-laundry { @apply border-amber-300 bg-amber-50; }
+      .item-card.is-laundry img { @apply grayscale opacity-70; }
+      .item-card.is-laundry .wash-btn { @apply bg-amber-500 text-white hover:bg-amber-600 opacity-100; }
+      .item-card.is-laundry .item-card-overlay { @apply from-amber-900/80; }
 
-    /* Custom Scrollbar for Laundry Carousel */
-    .hide-scroll::-webkit-scrollbar {
-      height: 6px;
+      /* Hover Actions (Wash Button) */
+      .wash-btn { 
+        @apply absolute top-2 right-2 z-30 w-7 h-7 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center border border-white/30 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white hover:text-primary transform translate-y-[-5px] group-hover:translate-y-0; 
+      }
+
+      /* --- FILTERS --- */
+      .filter-btn { @apply px-4 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap select-none; }
+      .filter-btn.active { @apply bg-slate-900 text-white border-slate-900 shadow-md; }
+      .filter-btn.inactive { @apply bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800; }
+      
+      /* --- FLOATING SELECTION BAR --- */
+      .selection-bar {
+        @apply fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900/95 backdrop-blur-sm text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-6 animate-slide-up border border-white/10;
+      }
     }
-    .hide-scroll::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    .hide-scroll::-webkit-scrollbar-thumb {
-      background-color: #cbd5e1;
-      border-radius: 20px;
-    }
+    
+    .hide-scroll::-webkit-scrollbar { display: none; }
+    .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-700">
 
-  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
+<body class="bg-surface text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <nav class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
         <div class="flex items-center gap-8">
-          <a href="/" class="flex-shrink-0 flex items-center gap-2">
-            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
+          <a href="/" class="flex-shrink-0 flex items-center gap-2 group">
+            <div
+              class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold shadow-sm group-hover:scale-105 transition-transform">
               <i class="fa-solid fa-shirt"></i>
             </div>
-            <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
-              OutfitAI
-            </span>
+            <span class="text-lg font-bold tracking-tight text-slate-900">OutfitAI</span>
           </a>
-          <div class="hidden sm:flex sm:space-x-4">
-            <a href="/" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">Home</a>
-            <a href="/wardrobe" class="text-primary bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium" aria-current="page">My Wardrobe</a>
-            <a href="/recommendations" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">Suggestions</a>
+          <div class="hidden sm:flex sm:space-x-1">
+            <a href="/"
+              class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Home</a>
+            <a href="/wardrobe" class="text-primary bg-indigo-50 px-3 py-2 rounded-lg text-sm font-medium"
+              aria-current="page">My Wardrobe</a>
+            <a href="/recommendations"
+              class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Suggestions</a>
           </div>
         </div>
         <div class="flex items-center gap-4">
-          <span class="text-sm text-slate-600 hidden md:block">Welcome, <span class="font-semibold text-slate-900">{{ user.name }}</span></span>
-          <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition-colors">
-            <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Logout
+          <span class="text-sm text-slate-600 hidden md:block">Welcome, <span class="font-semibold text-slate-900">{{
+              user.name }}</span></span>
+          <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition-colors font-medium">
+            <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i>
           </a>
         </div>
       </div>
     </div>
   </nav>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-slate-900 tracking-tight">My Wardrobe</h1>
-      <p class="mt-2 text-slate-500">Manage your collection, add new finds, and track laundry.</p>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow relative">
+
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">My Wardrobe</h1>
+        <p class="mt-1 text-sm text-slate-500">Manage your collection, upload items, and track laundry.</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="toggle-selection-btn" class="btn btn-secondary text-xs">
+          <i class="fa-regular fa-square-check mr-2"></i> Select Items
+        </button>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      
-      <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
-        
-        <div class="card p-6">
-          <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-cloud-arrow-up text-primary"></i> Add New Item
+
+      <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-24 z-30">
+
+        <div class="card p-5">
+          <h2 class="text-xs font-bold text-slate-400 mb-4 flex items-center gap-2 uppercase tracking-wide">
+            Add New Item
           </h2>
-          
+
           <form id="upload-form">
-            <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-indigo-50/50 transition-all group">
-              <div class="flex flex-col items-center justify-center pt-2 pb-3">
-                <i class="fa-solid fa-image text-3xl text-slate-300 mb-3 group-hover:text-primary transition-colors"></i>
-                <p class="text-sm text-slate-600 font-medium">Click or drag image here</p>
-                <p class="text-xs text-slate-400 mt-1">Supports JPG, PNG</p>
+            <div id="drop-zone"
+              class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-indigo-50/30 transition-all duration-200 group bg-slate-50">
+              <div class="flex flex-col items-center justify-center">
+                <i
+                  class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 mb-2 group-hover:text-primary transition-colors"></i>
+                <p class="text-xs text-slate-600 font-medium">Click or drag image</p>
               </div>
             </div>
             <input type="file" id="file-input" name="file" accept="image/*" class="hidden">
 
-            <div id="preview-area" class="hidden mt-4 relative">
-              <img id="image-preview" src="#" alt="Preview" class="w-full h-48 object-cover rounded-lg border border-slate-200 shadow-sm">
-              <button type="button" id="cancel-preview" class="absolute top-2 right-2 bg-white/90 text-slate-700 rounded-full w-8 h-8 flex items-center justify-center shadow-sm hover:text-red-600 transition-colors">
-                <i class="fa-solid fa-xmark"></i>
+            <div id="preview-area" class="hidden mt-4 relative group">
+              <img id="image-preview" src="#" alt="Preview"
+                class="w-full h-40 object-cover rounded-lg border border-slate-200">
+              <button type="button" id="cancel-preview"
+                class="absolute top-2 right-2 bg-white/90 text-slate-600 hover:text-red-600 rounded-full w-6 h-6 flex items-center justify-center shadow-md transition-all">
+                <i class="fa-solid fa-xmark text-xs"></i>
               </button>
             </div>
 
-            <div id="item-details-form" class="hidden space-y-4 mt-6 animate-fade-in-down">
-              <div>
-                <label for="item-name" class="block text-sm font-medium text-slate-700">Item Name</label>
-                <input type="text" id="item-name" name="item_name" required placeholder="e.g. Vintage Denim Jacket" class="form-input">
+            <div id="item-details-form" class="hidden space-y-3 mt-4 animate-fade-in">
+              <input type="text" id="item-name" name="item_name" required placeholder="Item Name" class="form-input">
+              <div class="relative">
+                <select id="item-category" name="item_category" required
+                  class="form-input appearance-none cursor-pointer">
+                  <option value="" disabled selected>Category...</option>
+                  <option value="Tops">Tops</option>
+                  <option value="Sweaters & Hoodies">Sweaters</option>
+                  <option value="Jackets & Coats">Jackets</option>
+                  <option value="Pants">Pants</option>
+                  <option value="Shorts & Skirts">Shorts</option>
+                  <option value="Dresses & Jumpsuits">Dresses</option>
+                  <option value="Shoes">Shoes</option>
+                  <option value="Accessories">Accessories</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500"><i
+                    class="fa-solid fa-chevron-down text-xs"></i></div>
               </div>
-
-              <div>
-                <label for="item-category" class="block text-sm font-medium text-slate-700">Category</label>
-                <div class="relative">
-                  <select id="item-category" name="item_category" required class="form-input appearance-none">
-                    <option value="" disabled selected>Select a category...</option>
-                    <option value="Tops">Tops</option>
-                    <option value="Sweaters & Hoodies">Sweaters & Hoodies</option>
-                    <option value="Jackets & Coats">Jackets & Coats</option>
-                    <option value="Pants">Pants</option>
-                    <option value="Shorts & Skirts">Shorts & Skirts</option>
-                    <option value="Dresses & Jumpsuits">Dresses & Jumpsuits</option>
-                    <option value="Shoes">Shoes</option>
-                    <option value="Accessories">Accessories</option>
-                  </select>
-                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                    <i class="fa-solid fa-chevron-down text-xs"></i>
-                  </div>
-                </div>
+              <div
+                class="flex items-center gap-2 p-2.5 bg-amber-50/50 rounded-lg border border-amber-100 cursor-pointer hover:bg-amber-50">
+                <input type="checkbox" id="in-laundry-checkbox" name="in_laundry"
+                  class="w-4 h-4 text-amber-500 rounded focus:ring-amber-500 cursor-pointer">
+                <label for="in-laundry-checkbox"
+                  class="text-xs font-medium text-slate-700 cursor-pointer select-none">Add to Laundry Basket</label>
               </div>
-
-              <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <input type="checkbox" id="in-laundry-checkbox" name="in_laundry" class="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500">
-                <label for="in-laundry-checkbox" class="text-sm text-slate-700 select-none">Mark as "In Laundry"</label>
-              </div>
-
-              <button type="submit" id="submit-button" class="btn btn-primary w-full" disabled>
-                <i class="fa-solid fa-plus mr-2"></i> Add to Wardrobe
-              </button>
+              <button type="submit" id="submit-button" class="btn btn-primary w-full py-2.5 shadow-md shadow-indigo-100"
+                disabled>Add Item</button>
             </div>
-
-            <p id="upload-status" class="text-center text-sm mt-3 font-medium"></p>
+            <p id="upload-status" class="text-center text-[10px] mt-2 font-semibold h-3"></p>
           </form>
         </div>
 
-        <div id="laundry-basket-card" class="card p-6 border-l-4 border-l-amber-400">
+        <div id="laundry-basket-card"
+          class="card p-5 border-l-4 border-l-laundry bg-gradient-to-br from-amber-50/50 to-white">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-slate-900">Laundry Basket</h2>
-            <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded-full">Cleaning</span>
+            <h2 class="text-xs font-bold text-amber-600 flex items-center gap-2 uppercase tracking-wide">
+              <i class="fa-solid fa-basket-shopping text-laundry"></i> Laundry Basket
+            </h2>
+            <span id="laundry-count"
+              class="bg-white text-amber-600 border border-amber-100 text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
           </div>
 
           <div class="relative group/carousel">
-            <button id="laundry-scroll-left" class="absolute -left-3 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full w-8 h-8 flex items-center justify-center text-slate-600 hover:text-primary opacity-0 group-hover/carousel:opacity-100 transition-opacity disabled:opacity-0">
-              <i class="fa-solid fa-chevron-left text-xs"></i>
-            </button>
+            <button id="laundry-scroll-left"
+              class="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 bg-white shadow-md rounded-full flex items-center justify-center text-slate-400 hover:text-primary opacity-0 group-hover/carousel:opacity-100 transition-all disabled:opacity-0"><i
+                class="fa-solid fa-chevron-left text-[10px]"></i></button>
 
-            <div id="laundry-items-carousel" class="flex gap-4 overflow-x-auto hide-scroll pb-4 scroll-smooth snap-x">
-              </div>
+            <div id="laundry-items-carousel"
+              class="flex gap-3 overflow-x-auto hide-scroll pb-2 snap-x scroll-smooth min-h-[80px] items-center">
+              <p id="laundry-empty" class="text-xs text-slate-400 italic w-full text-center">Basket is clean.</p>
+            </div>
 
-            <button id="laundry-scroll-right" class="absolute -right-3 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full w-8 h-8 flex items-center justify-center text-slate-600 hover:text-primary opacity-0 group-hover/carousel:opacity-100 transition-opacity disabled:opacity-0">
-              <i class="fa-solid fa-chevron-right text-xs"></i>
-            </button>
+            <button id="laundry-scroll-right"
+              class="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 bg-white shadow-md rounded-full flex items-center justify-center text-slate-400 hover:text-primary opacity-0 group-hover/carousel:opacity-100 transition-all disabled:opacity-0"><i
+                class="fa-solid fa-chevron-right text-[10px]"></i></button>
           </div>
-
-          <p id="laundry-empty" class="text-sm text-slate-400 italic text-center py-4 hidden">
-            Your basket is empty. Good job!
-          </p>
         </div>
       </div>
 
       <div class="lg:col-span-8">
-        <div class="card p-6 min-h-[600px]">
-          <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-            <h2 class="text-xl font-semibold text-slate-900">Available Items</h2>
-            <div class="flex gap-2">
-               <button class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full transition-colors">All</button>
-               <button class="text-xs bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-3 py-1.5 rounded-full transition-colors">Tops</button>
+        <div class="card p-6 min-h-[600px] bg-white">
+
+          <div class="sticky top-0 bg-white z-20 pb-4 pt-1 border-b border-slate-100 mb-6">
+            <div class="flex items-center gap-2 overflow-x-auto hide-scroll pb-1" id="category-filters">
             </div>
           </div>
-          
-          <div id="gallery-container" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-            <div id="gallery-loading" class="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
-              <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-indigo-400"></i>
-              <p>Loading your wardrobe...</p>
+
+          <div id="gallery-container" class="space-y-8">
+            <div id="gallery-loading" class="flex flex-col items-center justify-center py-20 text-slate-400">
+              <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3 text-primary"></i>
+              <p class="text-sm font-medium">Organizing your closet...</p>
             </div>
-            
-            <div id="gallery-empty" class="hidden col-span-full text-center py-20">
-              <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fa-solid fa-hanger text-2xl text-slate-400"></i>
-              </div>
-              <h3 class="text-slate-900 font-medium">Your wardrobe is empty</h3>
-              <p class="text-slate-500 text-sm mt-1">Upload an item on the left to get started.</p>
+            <div id="gallery-empty" class="hidden flex flex-col items-center justify-center py-20 text-center">
+              <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4"><i
+                  class="fa-solid fa-hanger text-2xl text-slate-300"></i></div>
+              <h3 class="text-sm font-bold text-slate-900">Closet Empty</h3>
+              <p class="text-xs text-slate-500 mt-1">Time to go shopping (or uploading)!</p>
             </div>
           </div>
         </div>
@@ -256,34 +261,44 @@
     </div>
   </div>
 
-  <div id="delete-modal" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
+  <div id="selection-bar" class="hidden selection-bar">
 
-    <div class="fixed inset-0 z-10 overflow-y-auto">
-      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-          <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-            <div class="sm:flex sm:items-start">
-              <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
-              </div>
-              <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                <h3 class="text-base font-semibold leading-6 text-slate-900" id="modal-title">Delete Item</h3>
-                <div class="mt-2">
-                  <p class="text-sm text-slate-500">Are you sure you want to permanently delete this item? This action cannot be undone.</p>
-                </div>
-              </div>
-            </div>
+    <div class="flex items-center gap-3 border-r border-slate-700 pr-4 mr-2">
+      <label class="flex items-center gap-2 cursor-pointer group">
+        <div class="relative">
+          <input type="checkbox" id="select-all-radio" class="peer sr-only">
+          <div
+            class="w-4 h-4 rounded-full border border-slate-400 peer-checked:bg-primary peer-checked:border-primary transition-all">
           </div>
-          <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-            <button id="modal-confirm" type="button" class="btn btn-danger w-full sm:w-auto sm:ml-3">Delete</button>
-            <button id="modal-cancel" type="button" class="btn btn-secondary w-full sm:w-auto mt-3 sm:mt-0">Cancel</button>
-          </div>
+          <div
+            class="absolute inset-0 flex items-center justify-center text-white scale-0 peer-checked:scale-100 transition-transform text-[8px]">
+            <i class="fa-solid fa-check"></i></div>
         </div>
-      </div>
+        <span class="text-xs font-medium text-slate-300 group-hover:text-white transition-colors">All</span>
+      </label>
     </div>
+
+    <span class="text-sm font-semibold whitespace-nowrap"><span id="selected-count" class="text-primary">0</span>
+      Selected</span>
+
+    <div class="flex items-center gap-2 ml-auto">
+      <button id="batch-wash-btn"
+        class="w-9 h-9 rounded-full bg-slate-800 hover:bg-amber-500 hover:text-white text-amber-400 transition-all flex items-center justify-center"
+        title="Toggle Laundry">
+        <i class="fa-solid fa-jug-detergent text-xs"></i>
+      </button>
+      <button id="batch-delete-btn"
+        class="w-9 h-9 rounded-full bg-slate-800 hover:bg-red-500 hover:text-white text-red-400 transition-all flex items-center justify-center"
+        title="Delete">
+        <i class="fa-solid fa-trash-can text-xs"></i>
+      </button>
+    </div>
+
+    <button id="cancel-selection-btn"
+      class="bg-white text-slate-900 hover:bg-slate-200 px-4 py-1.5 rounded-full text-xs font-bold ml-2">Done</button>
   </div>
 
   <script src="/static/js/wardrobe.js"></script>
 </body>
+
 </html>

@@ -2,8 +2,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // =======================
     // --- ELEMENT REFERENCES ---
     // =======================
-    
-    // Upload Elements
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
     const previewArea = document.getElementById('preview-area');
@@ -17,135 +15,98 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadForm = document.getElementById('upload-form');
     const uploadStatus = document.getElementById('upload-status');
 
-    // Gallery Elements
     const galleryContainer = document.getElementById('gallery-container');
     const galleryLoading = document.getElementById('gallery-loading');
     const galleryEmpty = document.getElementById('gallery-empty');
-    
-    // Laundry Elements
-    const laundryItemsCarousel = document.getElementById('laundry-items-carousel');
+    const categoryFiltersContainer = document.getElementById('category-filters');
+
+    // Note: Ensure your HTML ID matches this. 
+    // If you used the previous HTML I provided, this might be 'laundry-carousel'
+    const laundryItemsCarousel = document.getElementById('laundry-items-carousel') || document.getElementById('laundry-carousel');
     const laundryEmptyMessage = document.getElementById('laundry-empty');
+    const laundryCountBadge = document.getElementById('laundry-count');
     const laundryScrollLeftBtn = document.getElementById('laundry-scroll-left');
     const laundryScrollRightBtn = document.getElementById('laundry-scroll-right');
-    const LAUNDRY_CONTAINER_ID = 'laundry-basket-card'; 
 
-    // Modal Elements
-    const deleteModal = document.getElementById('delete-modal');
-    const modalCancel = document.getElementById('modal-cancel');
-    const modalConfirm = document.getElementById('modal-confirm');
+    // Selection Mode Elements
+    const toggleSelectionBtn = document.getElementById('toggle-selection-btn');
+    const selectionBar = document.getElementById('selection-bar');
+    const selectedCountSpan = document.getElementById('selected-count');
+    const selectAllRadio = document.getElementById('select-all-radio'); // New Radio Button
+    const cancelSelectionBtn = document.getElementById('cancel-selection-btn');
+    const batchDeleteBtn = document.getElementById('batch-delete-btn');
+    const batchWashBtn = document.getElementById('batch-wash-btn');
 
     let fileToUpload = null;
-    let itemToDelete = { filename: null, cardElement: null, containerId: null };
+    let selectionMode = false;
+    let selectedItems = new Set(); // Stores filenames
+    let allItemsData = []; // Store fetched data globally for "Select All" logic
 
     // =======================
-    // --- CAROUSEL NAVIGATION LOGIC ---
+    // --- CAROUSEL LOGIC ---
     // =======================
-
-    function updateNavButtonVisibility(carousel, leftBtn, rightBtn) {
+    function updateNavVisibility(carousel, leftBtn, rightBtn) {
         if (!carousel || !leftBtn || !rightBtn) return;
-
-        // Small delay to allow DOM to update scrollWidth
+        // Small delay to ensure layout is calculated
         setTimeout(() => {
-            const hasScroll = carousel.scrollWidth > carousel.clientWidth;
-            // Tolerance of 10px for float calculation issues
-            const isAtStart = carousel.scrollLeft < 10;
-            const isAtEnd = carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 10;
-
-            if (hasScroll) {
-                leftBtn.disabled = isAtStart;
-                rightBtn.disabled = isAtEnd;
-                
-                // Tailwind opacity handling for disabled state is done via CSS classes/attributes
-                leftBtn.style.opacity = isAtStart ? '0' : '1';
-                rightBtn.style.opacity = isAtEnd ? '0' : '1';
-            } else {
-                leftBtn.disabled = true;
-                rightBtn.disabled = true;
+            // If content is smaller than container, hide buttons
+            if (carousel.scrollWidth <= carousel.clientWidth) {
                 leftBtn.style.opacity = '0';
                 rightBtn.style.opacity = '0';
+                return;
             }
+
+            const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+            leftBtn.disabled = carousel.scrollLeft <= 5;
+            rightBtn.disabled = carousel.scrollLeft >= maxScroll - 5;
+
+            leftBtn.style.opacity = leftBtn.disabled ? '0' : '1';
+            rightBtn.style.opacity = rightBtn.disabled ? '0' : '1';
         }, 100);
     }
 
-    function setupCarouselNavigation(carousel, leftBtn, rightBtn) {
-        if (!carousel || !leftBtn || !rightBtn) return;
+    function setupCarouselNav(carousel, leftBtn, rightBtn) {
+        if (!carousel) return;
+        // Scroll amount matches item width + gap (approx 128px + 12px)
+        const scrollAmount = 140;
 
-        const scrollDistance = 200; // Scroll by approx one card width
+        if (leftBtn) {
+            leftBtn.onclick = (e) => {
+                e.preventDefault();
+                carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            };
+        }
 
-        leftBtn.onclick = (e) => {
-            e.preventDefault();
-            carousel.scrollBy({ left: -scrollDistance, behavior: 'smooth' });
-        };
+        if (rightBtn) {
+            rightBtn.onclick = (e) => {
+                e.preventDefault();
+                carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            };
+        }
 
-        rightBtn.onclick = (e) => {
-            e.preventDefault();
-            carousel.scrollBy({ left: scrollDistance, behavior: 'smooth' });
-        };
+        carousel.addEventListener('scroll', () => updateNavVisibility(carousel, leftBtn, rightBtn));
+        window.addEventListener('resize', () => updateNavVisibility(carousel, leftBtn, rightBtn));
 
-        carousel.onscroll = () => updateNavButtonVisibility(carousel, leftBtn, rightBtn);
-        window.addEventListener('resize', () => updateNavButtonVisibility(carousel, leftBtn, rightBtn));
-
-        updateNavButtonVisibility(carousel, leftBtn, rightBtn);
+        // Initial check
+        updateNavVisibility(carousel, leftBtn, rightBtn);
     }
 
     // =======================
-    // --- UTILITY FUNCTIONS ---
+    // --- UPLOAD LOGIC ---
     // =======================
-
-    /**
-     * Checks a parent container after an item is removed.
-     * Removes the category container if empty.
-     */
-    function checkAndRemoveEmptyContainers(containerId) {
-        const container = document.getElementById(containerId);
-
-        if (containerId === LAUNDRY_CONTAINER_ID) {
-            // Laundry Logic: check children of the carousel div
-            if (laundryItemsCarousel.childElementCount === 0) {
-                laundryEmptyMessage.style.display = 'block';
-            }
-            updateNavButtonVisibility(laundryItemsCarousel, laundryScrollLeftBtn, laundryScrollRightBtn);
-        }
-        else if (container) {
-            // Category Logic: container is the wrapper <div>. 
-            // Look for the carousel inside it.
-            const carousel = container.querySelector('.item-carousel');
-            if (carousel && carousel.childElementCount === 0) {
-                container.remove(); // Remove the whole row (Header + Carousel)
-            }
-        }
-
-        // Final check: Is the main gallery empty?
-        // We count category sections inside galleryContainer
-        const remainingCategories = galleryContainer.querySelectorAll('.category-section').length;
-        if (remainingCategories === 0) {
-             galleryEmpty.classList.remove('hidden');
-        } else {
-             galleryEmpty.classList.add('hidden');
-        }
-        
-        galleryLoading.classList.add('hidden');
-    }
-
-
-    // --- File Handling and Preview ---
     function handleFile(file) {
         fileToUpload = file;
         const reader = new FileReader();
         reader.onload = (e) => { imagePreview.src = e.target.result; };
         reader.readAsDataURL(file);
 
-        // Toggle visibility classes
         dropZone.classList.add('hidden');
         previewArea.classList.remove('hidden');
         itemDetailsForm.classList.remove('hidden');
-        submitButton.disabled = false; 
-        
+        submitButton.disabled = false;
         validateForm();
-        uploadStatus.textContent = '';
     }
 
-    // --- Form Validation ---
     function validateForm() {
         const nameFilled = itemNameInput.value.trim() !== '';
         const categorySelected = itemCategorySelect.value !== '';
@@ -153,40 +114,47 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = !(nameFilled && categorySelected && imageSelected);
     }
 
-    itemNameInput.addEventListener('input', validateForm);
-    itemCategorySelect.addEventListener('change', validateForm);
-
-    // --- Drag/Drop/Browse Logic ---
     dropZone.addEventListener('click', () => fileInput.click());
-    
-    // Visual feedback for Drag & Drop using Tailwind Utility Classes
-    dropZone.addEventListener('dragover', (e) => { 
-        e.preventDefault(); 
-        dropZone.classList.add('border-primary', 'bg-indigo-50'); 
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-primary', 'bg-indigo-50');
     });
-    
+
     dropZone.addEventListener('dragleave', () => {
         dropZone.classList.remove('border-primary', 'bg-indigo-50');
     });
-    
+
     dropZone.addEventListener('drop', (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         dropZone.classList.remove('border-primary', 'bg-indigo-50');
         const files = e.dataTransfer.files;
         if (files.length > 0 && files[0].type.startsWith('image/')) handleFile(files[0]);
     });
-    
+
     fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
+    itemNameInput.addEventListener('input', validateForm);
+    itemCategorySelect.addEventListener('change', validateForm);
 
     cancelPreviewButton.addEventListener('click', resetUploadForm);
 
-    // --- Upload Form Submission ---
+    function resetUploadForm() {
+        fileToUpload = null; fileInput.value = '';
+        dropZone.classList.remove('hidden');
+        previewArea.classList.add('hidden');
+        itemDetailsForm.classList.add('hidden');
+        itemNameInput.value = ''; itemCategorySelect.value = '';
+        laundryCheckbox.checked = false;
+        submitButton.disabled = true;
+        uploadStatus.textContent = '';
+    }
+
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!fileToUpload || submitButton.disabled) return;
 
-        uploadStatus.textContent = 'Uploading & Classifying...';
-        uploadStatus.className = 'text-center text-sm mt-3 font-medium text-indigo-600';
+        uploadStatus.textContent = 'Uploading...';
+        uploadStatus.className = 'text-center text-[10px] mt-2 font-bold text-indigo-600';
         submitButton.disabled = true;
 
         const formData = new FormData();
@@ -200,314 +168,368 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Upload failed');
 
-            uploadStatus.textContent = 'Upload successful!';
-            uploadStatus.className = 'text-center text-sm mt-3 font-medium text-green-600';
+            uploadStatus.textContent = 'Success!';
+            uploadStatus.className = 'text-center text-[10px] mt-2 font-bold text-green-600';
 
-            // Add new card to UI
-            addCardToGallery(result);
-
-            resetUploadForm();
+            setTimeout(() => {
+                resetUploadForm();
+                loadWardrobe(); // Reactive update
+            }, 1000);
 
         } catch (error) {
             uploadStatus.textContent = `Error: ${error.message}`;
-            uploadStatus.className = 'text-center text-sm mt-3 font-medium text-red-600';
-        } finally {
-            validateForm();
-            setTimeout(() => { uploadStatus.textContent = ''; }, 3000);
+            uploadStatus.className = 'text-center text-[10px] mt-2 font-bold text-red-600';
+            submitButton.disabled = false;
         }
     });
 
-    function resetUploadForm() {
-        fileToUpload = null; fileInput.value = '';
-        dropZone.classList.remove('hidden');
-        previewArea.classList.add('hidden');
-        itemDetailsForm.classList.add('hidden');
-        itemNameInput.value = ''; itemCategorySelect.value = '';
-        laundryCheckbox.checked = false; 
-        submitButton.disabled = true;
-        uploadStatus.textContent = '';
-    }
-
-    // --- Laundry Status Toggler ---
-    async function toggleLaundryStatus(item, cardElement) {
-        const newStatus = !item.in_laundry;
-        const currentContainer = cardElement.closest('.category-section') || cardElement.closest('.laundry-card'); // .laundry-card is likely the ID container
-        const sourceContainerId = currentContainer ? currentContainer.id : null;
-
-        try {
-            const response = await fetch('/api/wardrobe/toggle_status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    filename: item.filename,
-                    in_laundry: newStatus
-                })
-            });
-
-            if (!response.ok) {
-                const result = await response.json();
-                throw new Error(result.error || 'Failed to update status.');
-            }
-
-            // Update local data
-            item.in_laundry = newStatus;
-
-            // Animation
-            cardElement.style.transition = 'opacity 0.3s, transform 0.3s';
-            cardElement.style.opacity = '0';
-            cardElement.style.transform = 'scale(0.9)';
-
-            setTimeout(() => {
-                cardElement.remove();
-                addCardToGallery(item); // Re-render in new location
-
-                // Cleanup old container if empty
-                if (sourceContainerId) {
-                    checkAndRemoveEmptyContainers(sourceContainerId);
-                }
-            }, 300);
-
-        } catch (error) {
-            console.error('Status update failed:', error);
-            alert(`Error: ${error.message}`);
-        }
-    }
-
-    // --- Gallery Card Creator ---
+    // =======================
+    // --- ITEM CARD LOGIC ---
+    // =======================
     function createItemCard(item) {
         const card = document.createElement('div');
-        // The class 'item-card' is defined in the HTML <style> block with @apply
-        card.className = `item-card ${item.in_laundry ? 'is-laundry' : ''}`;
+        // Tailwind classes: ensure .item-card in CSS/HTML head handles the 'w-32 h-40' sizing
+        card.className = `item-card ${item.in_laundry ? 'is-laundry' : ''} ${selectedItems.has(item.filename) ? 'selected' : ''}`;
         card.dataset.filename = item.filename;
 
+        // Image
         const img = document.createElement('img');
         img.src = item.url;
-        img.alt = item.name || item.filename;
-        // Handle broken images
-        img.onerror = () => { img.src = 'https://placehold.co/160x192/f1f5f9/64748b?text=Image+Error'; };
+        img.alt = item.name;
+        img.loading = "lazy";
+        img.onerror = () => { img.src = 'https://placehold.co/144x192/f1f5f9/64748b?text=Error'; };
 
-        // Delete Button (Using FontAwesome)
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-button';
-        deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
-        deleteBtn.onclick = (e) => {
-            e.stopPropagation(); // Prevent bubbling
-            const container = card.closest('.category-section') || document.getElementById(LAUNDRY_CONTAINER_ID);
-            const containerId = container ? container.id : null;
-            openDeleteModal(item.filename, card, containerId);
+        // Overlay Container
+        const overlay = document.createElement('div');
+        overlay.className = 'item-card-overlay';
+        overlay.innerHTML = `
+            <h4 class="item-name">${item.name}</h4>
+            <p class="text-[9px] text-white/80">${item.category}</p>
+        `;
+
+        // Selection Checkbox (Visual only, logic handled by card click)
+        const checkbox = document.createElement('div');
+        checkbox.className = 'select-checkbox';
+        checkbox.innerHTML = '<i class="fa-solid fa-check text-[10px] text-white"></i>';
+
+        // Wash Button (Appears on hover)
+        const washBtn = document.createElement('button');
+        washBtn.className = 'wash-btn';
+        washBtn.title = item.in_laundry ? 'Mark Clean' : 'Add to Laundry';
+        washBtn.innerHTML = item.in_laundry
+            ? '<i class="fa-solid fa-shirt text-xs"></i>'
+            : '<i class="fa-solid fa-jug-detergent text-xs"></i>';
+
+        // Click Logic
+        card.onclick = (e) => {
+            if (selectionMode) {
+                e.stopPropagation();
+                toggleItemSelection(item.filename, card);
+            }
         };
 
-        // Status Button (Using FontAwesome)
-        const statusBtn = document.createElement('button');
-        statusBtn.className = 'status-toggle-button';
-        // Icon changes based on state
-        statusBtn.innerHTML = item.in_laundry 
-            ? '<i class="fa-solid fa-shirt"></i> Clean' 
-            : '<i class="fa-solid fa-jug-detergent"></i> Wash';
-        
-        statusBtn.onclick = (e) => {
+        // Wash logic
+        washBtn.onclick = (e) => {
             e.stopPropagation();
             toggleLaundryStatus(item, card);
         };
 
+        card.appendChild(checkbox);
+        card.appendChild(washBtn);
         card.appendChild(img);
-        card.appendChild(deleteBtn);
-        card.appendChild(statusBtn);
+        card.appendChild(overlay);
         return card;
     }
 
-    // --- RENDER FUNCTION (Modified for Tailwind) ---
-    function addCardToGallery(item) {
-        const category = item.category || 'Other';
-        const newCard = createItemCard(item);
+    async function toggleLaundryStatus(item, card) {
+        const newStatus = !item.in_laundry;
+        try {
+            // Optimistic UI update
+            card.style.opacity = '0.5';
 
-        if (item.in_laundry) {
-            // Add to Laundry Carousel
-            laundryItemsCarousel.prepend(newCard);
-            laundryEmptyMessage.style.display = 'none';
-        } else {
-            // Add to Main Gallery (Grouped by Category)
-            const categoryId = `category-${category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-            let categorySection = document.getElementById(categoryId);
-            let carousel;
+            const response = await fetch('/api/wardrobe/toggle_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: item.filename, in_laundry: newStatus })
+            });
 
-            if (!categorySection) {
-                // Create a new category row if it doesn't exist
-                categorySection = document.createElement('div');
-                categorySection.className = 'category-section mb-8 animate-fade-in-down'; // Tailwind classes
-                categorySection.id = categoryId;
+            if (!response.ok) throw new Error('Status update failed');
 
-                // Category Header
-                const heading = document.createElement('h3');
-                heading.className = 'text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2 capitalize';
-                heading.innerHTML = `<span class="w-2 h-6 bg-primary rounded-full inline-block"></span>${category}`;
-                categorySection.appendChild(heading);
+            // Reactive Refresh
+            loadWardrobe();
 
-                // Carousel Container (Tailwind classes)
-                carousel = document.createElement('div');
-                // flex gap-4 overflow-x-auto hide-scroll pb-4 snap-x
-                carousel.className = 'item-carousel flex gap-4 overflow-x-auto hide-scroll pb-4 snap-x scroll-smooth';
-                
-                categorySection.appendChild(carousel);
-                
-                // Append to the Main Grid Container (which we are treating as a flex col wrapper in the JS logic)
-                // Note: We need to ensure the HTML #gallery-container is not a grid if we are doing rows.
-                // If #gallery-container has 'grid' class in HTML, we might want to remove it via JS or change logic.
-                // Assuming we want rows of carousels:
-                galleryContainer.classList.remove('grid', 'grid-cols-2', 'sm:grid-cols-3', 'xl:grid-cols-4');
-                galleryContainer.classList.add('flex', 'flex-col', 'gap-2');
-                
-                galleryContainer.appendChild(categorySection);
-            } else {
-                carousel = categorySection.querySelector('.item-carousel');
-            }
-
-            carousel.prepend(newCard);
-            galleryEmpty.classList.add('hidden');
+        } catch (error) {
+            card.style.opacity = '1';
+            console.error(error);
+            alert('Connection failed');
         }
-
-        galleryLoading.classList.add('hidden');
-
-        // Update nav
-        updateNavButtonVisibility(laundryItemsCarousel, laundryScrollLeftBtn, laundryScrollRightBtn);
     }
 
-    // --- Load Wardrobe ---
+    // =======================
+    // --- SELECTION LOGIC ---
+    // =======================
+    toggleSelectionBtn.addEventListener('click', () => {
+        selectionMode = !selectionMode;
+        document.body.classList.toggle('selection-mode', selectionMode);
+
+        if (selectionMode) {
+            toggleSelectionBtn.classList.add('bg-slate-800', 'text-white', 'border-transparent');
+            toggleSelectionBtn.classList.remove('btn-secondary');
+            toggleSelectionBtn.innerHTML = '<i class="fa-solid fa-xmark mr-2"></i> Cancel';
+            selectionBar.classList.remove('hidden');
+        } else {
+            exitSelectionMode();
+        }
+    });
+
+    cancelSelectionBtn.addEventListener('click', exitSelectionMode);
+
+    function exitSelectionMode() {
+        selectionMode = false;
+        selectedItems.clear();
+        document.body.classList.remove('selection-mode');
+        toggleSelectionBtn.classList.remove('bg-slate-800', 'text-white', 'border-transparent');
+        toggleSelectionBtn.classList.add('btn-secondary');
+        toggleSelectionBtn.innerHTML = '<i class="fa-regular fa-square-check mr-2"></i> Select Items';
+        selectionBar.classList.add('hidden');
+
+        // Reset Radio Button
+        if (selectAllRadio) selectAllRadio.checked = false;
+
+        updateSelectionUI();
+    }
+
+    function toggleItemSelection(filename, card) {
+        if (selectedItems.has(filename)) {
+            selectedItems.delete(filename);
+            card.classList.remove('selected');
+        } else {
+            selectedItems.add(filename);
+            card.classList.add('selected');
+        }
+
+        // If we manually uncheck something, uncheck the master radio
+        if (!selectedItems.has(filename) && selectAllRadio) {
+            selectAllRadio.checked = false;
+        }
+
+        updateSelectionUI();
+    }
+
+    // --- NEW: Radio Button Select All Logic ---
+    if (selectAllRadio) {
+        selectAllRadio.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+
+            if (isChecked) {
+                // Select all items currently in the allItemsData
+                // (You can optionally filter this to only 'wardrobe' items if preferred)
+                const itemsToSelect = allItemsData.filter(i => !i.in_laundry); // Assuming we select visible wardrobe
+                itemsToSelect.forEach(item => selectedItems.add(item.filename));
+            } else {
+                selectedItems.clear();
+            }
+            updateSelectionUI();
+        });
+    }
+
+    function updateSelectionUI() {
+        selectedCountSpan.textContent = selectedItems.size;
+
+        // Refresh selection visual state on all cards
+        const allCards = document.querySelectorAll('.item-card');
+        allCards.forEach(c => {
+            if (selectedItems.has(c.dataset.filename)) c.classList.add('selected');
+            else c.classList.remove('selected');
+        });
+    }
+
+    // Batch Delete
+    batchDeleteBtn.addEventListener('click', async () => {
+        if (selectedItems.size === 0) return;
+        if (!confirm(`Delete ${selectedItems.size} items permanently?`)) return;
+
+        try {
+            const promises = Array.from(selectedItems).map(filename =>
+                fetch('/api/wardrobe/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                })
+            );
+
+            await Promise.all(promises);
+            exitSelectionMode();
+            loadWardrobe();
+        } catch (error) {
+            alert('Error deleting items');
+        }
+    });
+
+    // Batch Wash
+    batchWashBtn.addEventListener('click', async () => {
+        if (selectedItems.size === 0) return;
+
+        // Toggle all selected items
+        const updates = [];
+        // We use allItemsData to find the current state of selected items
+        Array.from(selectedItems).forEach(filename => {
+            const item = allItemsData.find(i => i.filename === filename);
+            if (item) {
+                updates.push(fetch('/api/wardrobe/toggle_status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: filename, in_laundry: !item.in_laundry })
+                }));
+            }
+        });
+
+        try {
+            await Promise.all(updates);
+            exitSelectionMode();
+            loadWardrobe();
+        } catch (e) {
+            alert("Batch update failed");
+        }
+    });
+
+    // =======================
+    // --- LOAD & RENDER ---
+    // =======================
     async function loadWardrobe() {
         try {
             const response = await fetch('/api/wardrobe');
-            if (!response.ok) throw new Error('Could not fetch wardrobe.');
+            allItemsData = await response.json(); // Update global data
 
-            const items = await response.json();
-
-            // Reset containers
+            // Clear UI Containers
             galleryContainer.innerHTML = '';
             laundryItemsCarousel.innerHTML = '';
+            categoryFiltersContainer.innerHTML = '';
 
-            let availableCount = 0;
-            // Group items for display
-            const groupedAvailableItems = {};
+            // Split Data
+            const laundryItems = allItemsData.filter(i => i.in_laundry);
+            const availableItems = allItemsData.filter(i => !i.in_laundry);
 
-            items.forEach(item => {
-                if (item.in_laundry) {
-                    laundryEmptyMessage.style.display = 'none';
+            // 1. Render Laundry Basket
+            laundryCountBadge.textContent = laundryItems.length;
+            if (laundryItems.length > 0) {
+                laundryEmptyMessage.classList.add('hidden');
+                laundryItems.forEach(item => {
                     laundryItemsCarousel.appendChild(createItemCard(item));
-                } else {
-                    availableCount++;
-                    const category = item.category || 'Other';
-                    if (!groupedAvailableItems[category]) { groupedAvailableItems[category] = []; }
-                    groupedAvailableItems[category].push(item);
-                }
-            });
+                });
+            } else {
+                laundryEmptyMessage.classList.remove('hidden');
+            }
+            setupCarouselNav(laundryItemsCarousel, laundryScrollLeftBtn, laundryScrollRightBtn);
 
-            if (availableCount === 0) {
+            // 2. Render Gallery Filters & Carousels
+            if (availableItems.length === 0) {
                 galleryEmpty.classList.remove('hidden');
             } else {
                 galleryEmpty.classList.add('hidden');
-                
-                // Sort categories alphabetically
-                const sortedCategories = Object.keys(groupedAvailableItems).sort();
 
-                sortedCategories.forEach(category => {
-                    // Manually call addCard logic or construct the section
-                    // We can reuse the logic from addCardToGallery but passing a specific loop
-                    // Simplified: Just construct the section here
-                    
-                    const categoryId = `category-${category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-                    const categorySection = document.createElement('div');
-                    categorySection.className = 'category-section mb-8';
-                    categorySection.id = categoryId;
+                // Create Filters
+                const categories = ['All', ...new Set(availableItems.map(i => i.category || 'Other'))].sort();
 
-                    const heading = document.createElement('h3');
-                    heading.className = 'text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2 capitalize';
-                    heading.innerHTML = `<span class="w-2 h-6 bg-primary rounded-full inline-block"></span>${category}`;
-                    categorySection.appendChild(heading);
-
-                    const carousel = document.createElement('div');
-                    carousel.className = 'item-carousel flex gap-4 overflow-x-auto hide-scroll pb-4 snap-x scroll-smooth';
-                    
-                    groupedAvailableItems[category].forEach(item => {
-                        carousel.appendChild(createItemCard(item));
-                    });
-
-                    categorySection.appendChild(carousel);
-                    
-                    // Ensure container is column layout
-                    galleryContainer.classList.remove('grid', 'grid-cols-2', 'sm:grid-cols-3', 'xl:grid-cols-4');
-                    galleryContainer.classList.add('flex', 'flex-col', 'gap-2');
-                    
-                    galleryContainer.appendChild(categorySection);
+                categories.forEach(cat => {
+                    const btn = document.createElement('button');
+                    btn.textContent = cat;
+                    btn.className = `filter-btn ${cat === 'All' ? 'active' : 'inactive'}`;
+                    btn.onclick = () => filterGallery(cat, availableItems);
+                    categoryFiltersContainer.appendChild(btn);
                 });
+
+                // Initial Render
+                filterGallery('All', availableItems);
             }
 
-            // Final cleanup
-            checkAndRemoveEmptyContainers(LAUNDRY_CONTAINER_ID);
             galleryLoading.classList.add('hidden');
 
-            setupCarouselNavigation(laundryItemsCarousel, laundryScrollLeftBtn, laundryScrollRightBtn);
+            // Re-apply selections if mode is active (useful after laundry toggle)
+            if (selectionMode) updateSelectionUI();
 
         } catch (error) {
-            galleryLoading.innerHTML = `<span class="text-red-500">Error: ${error.message}</span>`;
+            console.error(error);
+            galleryLoading.innerHTML = `<span class="text-red-500">Error loading data. Is the API running?</span>`;
         }
     }
 
-    // --- Delete Logic (Modal) ---
-    modalConfirm.addEventListener('click', async () => {
-        if (!itemToDelete.filename) return;
+    function filterGallery(selectedCategory, allItems) {
+        // Update Filter UI
+        const buttons = categoryFiltersContainer.querySelectorAll('.filter-btn');
+        buttons.forEach(btn => {
+            if (btn.textContent === selectedCategory) {
+                btn.classList.remove('inactive');
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+                btn.classList.add('inactive');
+            }
+        });
 
-        try {
-            const response = await fetch('/api/wardrobe/delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename: itemToDelete.filename })
+        galleryContainer.innerHTML = '';
+
+        // Group Items
+        const groups = {};
+        allItems.forEach(item => {
+            const cat = item.category || 'Other';
+            if (selectedCategory === 'All' || cat === selectedCategory) {
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push(item);
+            }
+        });
+
+        // Render Category Sections (Carousels)
+        const sortedCategories = Object.keys(groups).sort();
+
+        sortedCategories.forEach(category => {
+            const section = document.createElement('div');
+            section.className = 'category-section mb-8 animate-fade-in';
+
+            // Section Header
+            const header = document.createElement('div');
+            header.className = 'flex items-center gap-2 mb-3 px-1';
+            header.innerHTML = `
+                <div class="w-1 h-5 bg-primary rounded-full"></div>
+                <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">${category}</h3>
+                <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">${groups[category].length}</span>
+            `;
+            section.appendChild(header);
+
+            // Carousel Wrapper
+            const carouselWrapper = document.createElement('div');
+            carouselWrapper.className = 'relative group/slider';
+
+            // Left Nav Button
+            const leftBtn = document.createElement('button');
+            leftBtn.className = 'absolute left-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white/90 backdrop-blur shadow-sm rounded-full flex items-center justify-center text-slate-600 hover:text-primary -ml-3 opacity-0 group-hover/slider:opacity-100 transition-all disabled:opacity-0 cursor-pointer border border-slate-100';
+            leftBtn.innerHTML = '<i class="fa-solid fa-chevron-left text-xs"></i>';
+
+            // Right Nav Button
+            const rightBtn = document.createElement('button');
+            rightBtn.className = 'absolute right-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white/90 backdrop-blur shadow-sm rounded-full flex items-center justify-center text-slate-600 hover:text-primary -mr-3 opacity-0 group-hover/slider:opacity-100 transition-all disabled:opacity-0 cursor-pointer border border-slate-100';
+            rightBtn.innerHTML = '<i class="fa-solid fa-chevron-right text-xs"></i>';
+
+            // Carousel Container
+            const carousel = document.createElement('div');
+            carousel.className = 'flex gap-3 overflow-x-auto hide-scroll pb-4 snap-x scroll-smooth px-1';
+
+            // Add Cards
+            groups[category].forEach(item => {
+                carousel.appendChild(createItemCard(item));
             });
-            const result = await response.json();
-            if (!response.ok && response.status !== 404) throw new Error(result.error || 'Delete failed');
 
-            // Animate removal
-            itemToDelete.cardElement.style.transition = 'all 0.3s ease';
-            itemToDelete.cardElement.style.transform = 'scale(0.0)';
-            itemToDelete.cardElement.style.opacity = '0';
+            carouselWrapper.appendChild(leftBtn);
+            carouselWrapper.appendChild(carousel);
+            carouselWrapper.appendChild(rightBtn);
+            section.appendChild(carouselWrapper);
+            galleryContainer.appendChild(section);
 
-            const deletedContainerId = itemToDelete.containerId;
-
-            setTimeout(() => {
-                itemToDelete.cardElement.remove();
-                if (deletedContainerId) {
-                    checkAndRemoveEmptyContainers(deletedContainerId);
-                }
-            }, 300);
-
-        } catch (error) {
-            console.error('Delete error:', error);
-            alert(`Error: ${error.message}`);
-        } finally {
-            closeModal();
-        }
-    });
-
-    function openDeleteModal(filename, cardElement, containerId) {
-        itemToDelete.filename = filename;
-        itemToDelete.cardElement = cardElement;
-        itemToDelete.containerId = containerId;
-        deleteModal.classList.remove('hidden');
+            // Activate Scroll Logic
+            setupCarouselNav(carousel, leftBtn, rightBtn);
+        });
     }
 
-    function closeModal() {
-        itemToDelete = { filename: null, cardElement: null, containerId: null };
-        deleteModal.classList.add('hidden');
-    }
-
-    modalCancel.addEventListener('click', closeModal);
-    deleteModal.addEventListener('click', (e) => { 
-        // Check if clicking the backdrop (not the inner modal content)
-        // The HTML structure: #delete-modal > backdrop div > wrapper > modal content
-        // If the user clicks the background overlay
-        if (e.target === deleteModal || e.target.classList.contains('bg-slate-900/50')) {
-             closeModal();
-        }
-    });
-
-    // --- Initial Load ---
+    // --- INIT ---
     loadWardrobe();
 });
