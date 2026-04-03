@@ -1,21 +1,38 @@
 # /OutfitAI/services/firebase_service.py
 
 import os
+import json
 import firebase_admin
 from firebase_admin import credentials, auth, firestore, storage
 
 # --- Initialization Block ---
 
-# Absolute path to /OutfitAI/serviceAccountKey.json
+# Absolute path to local serviceAccountKey.json
 SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'serviceAccountKey.json')
 
-if not os.path.exists(SERVICE_ACCOUNT_PATH):
-    raise FileNotFoundError(f"serviceAccountKey.json not found at {SERVICE_ACCOUNT_PATH}. "
-                            "Download it from Firebase Console -> Project Settings -> Service accounts.")
+# Try to get Firebase key from environment (Render) first
+firebase_key_env = os.environ.get("FIREBASE_KEY_JSON")
+
+if firebase_key_env:
+    # Use the JSON from environment variable
+    try:
+        service_account_info = json.loads(firebase_key_env)
+        cred = credentials.Certificate(service_account_info)
+        print("Firebase Admin SDK initialized using environment variable.")
+    except json.JSONDecodeError:
+        raise RuntimeError("FIREBASE_KEY_JSON is not valid JSON.")
+elif os.path.exists(SERVICE_ACCOUNT_PATH):
+    # Fallback to local JSON file
+    cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+    print(f"Firebase Admin SDK initialized using local file at {SERVICE_ACCOUNT_PATH}.")
+else:
+    raise FileNotFoundError(
+        f"serviceAccountKey.json not found at {SERVICE_ACCOUNT_PATH} and FIREBASE_KEY_JSON not set. "
+        "Provide the file locally or set the environment variable in Render."
+    )
 
 # Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
-    cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
     firebase_admin.initialize_app(cred, {
         'storageBucket': 'outfitai-a4f33.appspot.com'
     })
