@@ -33,3 +33,6 @@ serviceAccountKey.json
 # Miscellaneous
 *.sqlite3
 *.db
+
+serviceAccountKey.json
+.env
