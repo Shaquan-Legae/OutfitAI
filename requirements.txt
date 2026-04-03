@@ -6,7 +6,6 @@ Pillow>=12.0.0
 python-dotenv==1.0.1
 requests==2.31.0
 gunicorn==21.2.0
-python-3.10.0
 
-# Only include if absolutely needed
-# tensorflow-cpu==2.15.0
+# Optional CPU TensorFlow (only include if needed)
+# tensorflow-cpu==2.12.0
