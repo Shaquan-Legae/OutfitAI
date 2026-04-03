@@ -1,21 +1,42 @@
 import os
 import random
+import sys
 import numpy as np
 from PIL import Image, ImageOps
 
 # --- TensorFlow Imports ---
-# This will work if you have run 'pip install tensorflow'
-try:
-    import tensorflow as tf
-    # Import the built-in MobileNetV2 model and its helper functions
-    from tensorflow.keras.applications import MobileNetV2
-    from tensorflow.keras.applications.mobilenet_v2 import preprocess_input, decode_predictions
-except ImportError:
+# TensorFlow wheels are currently published for Python 3.9-3.12.
+PYTHON_VERSION = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+TF_RUNTIME_SUPPORTED = (3, 9) <= sys.version_info[:2] < (3, 13)
+TF_IMPORT_ERROR = None
+
+if TF_RUNTIME_SUPPORTED:
+    try:
+        import tensorflow as tf
+        # Import the built-in MobileNetV2 model and its helper functions
+        from tensorflow.keras.applications import MobileNetV2
+        from tensorflow.keras.applications.mobilenet_v2 import preprocess_input, decode_predictions
+    except ImportError as exc:
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("WARNING: TensorFlow is not installed in the active interpreter.")
+        print("Install it in a Python 3.9-3.12 environment with `pip install tensorflow-cpu`.")
+        print("This can also happen if VS Code is using the wrong virtual environment.")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        tf = None
+        TF_IMPORT_ERROR = exc
+else:
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    print("WARNING: TensorFlow not installed. Run `pip install tensorflow`")
-    print("This error also appears if VS Code is not using your venv.")
+    print(
+        f"WARNING: TensorFlow classification is disabled on Python {PYTHON_VERSION}. "
+        "TensorFlow currently supports Python 3.9-3.12."
+    )
+    print("Use Python 3.12 (recommended) or 3.11 for real image classification.")
+    print("The app will continue with mock classification data.")
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     tf = None
+    TF_IMPORT_ERROR = RuntimeError(
+        f"TensorFlow is unsupported on Python {PYTHON_VERSION}. Use Python 3.9-3.12."
+    )
 
 # --- Global variables to hold the loaded model ---
 model = None
@@ -49,7 +70,7 @@ def load_classification_model():
         return
         
     if not tf:
-        print("TensorFlow not available. Cannot load model.")
+        print(f"TensorFlow not available. Cannot load model. {TF_IMPORT_ERROR}")
         return
 
     try:
@@ -83,7 +104,7 @@ def classify_image(image_path):
                 random.choice(MOCK_COLORS),
                 random.choice(MOCK_STYLES)
             ],
-            "description": "Unclassified Item (Model not loaded)"
+            "description": "Unclassified Item (TensorFlow unavailable)"
         }
 
     try:

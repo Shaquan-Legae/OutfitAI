@@ -357,6 +357,9 @@ def api_chatbot():
             image_base64=image_base64
         )
         return jsonify({'response': bot_response}), 200
+    except gemini_service.GeminiServiceError as e:
+        print(f"Chatbot service error: {e}")
+        return jsonify({'error': str(e)}), e.status_code
     except Exception as e:
         print(f"Error calling gemini_service.chat_with_gemini: {e}")
         return jsonify({'error': 'AI service failed to respond.'}), 503 # Service Unavailable
@@ -374,9 +377,10 @@ def api_chatbot_tts():
 
     try:
         audio_response = gemini_service.generate_tts_audio(text_to_speak)
-        if 'error' in audio_response:
-            return jsonify(audio_response), 500
         return jsonify(audio_response), 200
+    except gemini_service.GeminiServiceError as e:
+        print(f"TTS service error: {e}")
+        return jsonify({'error': str(e)}), e.status_code
     except Exception as e:
         print(f"Error calling gemini_service.generate_tts_audio: {e}")
         return jsonify({'error': 'TTS service failed.'}), 503
@@ -411,12 +415,17 @@ def api_get_recommendation():
     # 2. Call Gemini Service with ONLY the available items
     try:
         recommendation_data = gemini_service.get_outfit_recommendation(weather_info, available_items, user_name)
+    except gemini_service.GeminiServiceError as e:
+        print(f"Recommendation service error: {e}")
+        return jsonify({'error': str(e)}), e.status_code
     except Exception as e:
         print(f"Error calling gemini_service.get_outfit_recommendation: {e}")
         return jsonify({'error': 'AI recommendation service failed.'}), 503
 
-    if 'error' in recommendation_data or 'missing_item_suggestion' in recommendation_data:
+    if 'missing_item_suggestion' in recommendation_data:
         return jsonify(recommendation_data), 200
+    if 'error' in recommendation_data:
+        return jsonify(recommendation_data), 502
 
     # 3. Hydrate the successful outfit response
     wardrobe_map = {item['name']: item for item in all_wardrobe_items}
@@ -461,6 +470,7 @@ if __name__ == '__main__':
         print(f"CRITICAL Error initializing chat session: {e}")
         app_chat_session = None
 
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
 

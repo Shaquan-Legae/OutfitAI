@@ -1,21 +1,19 @@
-// Initialize Firebase
+// --- Firebase Config & Initialization ---
 const firebaseConfig = {
-    apiKey: "AIzaSyDZZoBF1xSErZKeYT5KsY3XpDpKyQYORdg", // Replace with your actual key if different
+    apiKey: "AIzaSyDZZoBF1xSErZKeYT5KsY3XpDpKyQYORdg",
     authDomain: "outfitai-a4f33.firebaseapp.com",
     projectId: "outfitai-a4f33",
-    storageBucket: "outfitai-a4f33.appspot.com", // Corrected domain
+    storageBucket: "outfitai-a4f33.appspot.com",
     messagingSenderId: "909051410289",
     appId: "1:909051410289:web:9ad70a7986c8233ff268d0",
     measurementId: "G-CB918H4618"
 };
 
-// ------------------------------------------------------
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-// Get all DOM elements
+// --- DOM Elements ---
 const loginContainer = document.getElementById('login-container');
 const registerContainer = document.getElementById('register-container');
 const showRegisterLink = document.getElementById('show-register');
@@ -25,19 +23,18 @@ const loginEmail = document.getElementById('login-email');
 const loginPass = document.getElementById('login-password');
 const btnLogin = document.getElementById('btn-login');
 const btnGoogleLogin = document.getElementById('btn-google-login');
-const btnAppleLogin = document.getElementById('btn-apple-login'); // Get Apple button if needed
+const btnAppleLogin = document.getElementById('btn-apple-login');
 
 const regName = document.getElementById('reg-name');
 const regEmail = document.getElementById('reg-email');
 const regPass = document.getElementById('reg-password');
 const btnRegister = document.getElementById('btn-register');
 
-// FIX: Get separate error elements for login and register
 const authErrorLogin = document.getElementById('auth-error-login');
 const authErrorRegister = document.getElementById('auth-error-register');
 
-// --- Form Toggling ---
-showRegisterLink.addEventListener('click', () => {
+// --- Toggle Forms ---
+function showRegisterForm() {
     loginContainer.style.opacity = '0';
     loginContainer.style.transform = 'translateY(10px)';
     setTimeout(() => {
@@ -45,116 +42,129 @@ showRegisterLink.addEventListener('click', () => {
         registerContainer.style.display = 'block';
         registerContainer.style.opacity = '1';
         registerContainer.style.transform = 'translateY(0)';
-        authErrorLogin.innerText = ''; // Clear login error
-        authErrorRegister.innerText = ''; // Clear register error
-    }, 300); // Match CSS transition duration
-});
+        authErrorLogin.innerText = '';
+        authErrorRegister.innerText = '';
+    }, 300);
+}
 
-showLoginLink.addEventListener('click', () => {
+function showLoginForm() {
     registerContainer.style.opacity = '0';
     registerContainer.style.transform = 'translateY(10px)';
-     setTimeout(() => {
+    setTimeout(() => {
         registerContainer.style.display = 'none';
         loginContainer.style.display = 'block';
         loginContainer.style.opacity = '1';
         loginContainer.style.transform = 'translateY(0)';
-        authErrorLogin.innerText = ''; // Clear login error
-        authErrorRegister.innerText = ''; // Clear register error
-    }, 300); // Match CSS transition duration
-});
+        authErrorLogin.innerText = '';
+        authErrorRegister.innerText = '';
+    }, 300);
+}
 
-// --- Core Auth Function ---
-// This function notifies our Flask backend that a user has logged in via Firebase Auth.
+showRegisterLink.addEventListener('click', showRegisterForm);
+showLoginLink.addEventListener('click', showLoginForm);
+
+// --- Backend Session Notifier ---
 async function notifyBackend(user) {
-    authErrorLogin.innerText = 'Verifying session...'; // Update login status
-    authErrorRegister.innerText = ''; // Clear register status
+    authErrorLogin.innerText = 'Verifying session...';
+    authErrorRegister.innerText = '';
     try {
         const idToken = await user.getIdToken();
         const response = await fetch('/api/auth/session_login', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ idToken: idToken })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
         });
 
         if (response.ok) {
-            // Backend confirmed, redirect to the main app
             window.location.href = '/';
         } else {
-            const errorData = await response.json();
-            const errorMessage = `Server Error: ${errorData.error || response.statusText}`;
-            console.error('Backend session login failed:', errorData);
-            authErrorLogin.innerText = errorMessage; // Show error on login form
-            // Log the user out of Firebase client-side if server fails
-            auth.signOut();
+            const data = await response.json();
+            const message = data.error || 'Server session verification failed.';
+            authErrorLogin.innerText = message;
+            await auth.signOut();
         }
     } catch (error) {
-        console.error('Error notifying backend:', error);
+        console.error('Backend session login error:', error);
         authErrorLogin.innerText = `Error contacting server: ${error.message}`;
     }
 }
 
-// --- Event Listeners for Auth ---
-
-// Email/Password Login
-btnLogin.addEventListener('click', e => {
-    e.preventDefault(); // Prevent potential form submission
-    authErrorLogin.innerText = ''; // Clear old errors
-    authErrorRegister.innerText = '';
-    auth.signInWithEmailAndPassword(loginEmail.value, loginPass.value)
-        .then(userCredential => notifyBackend(userCredential.user))
-        .catch(error => {
-            console.error("Login failed:", error);
-            authErrorLogin.innerText = error.message;
-         });
-});
-
-// Google Login
-btnGoogleLogin.addEventListener('click', e => {
+// --- Login Event ---
+btnLogin.addEventListener('click', async e => {
     e.preventDefault();
     authErrorLogin.innerText = '';
     authErrorRegister.innerText = '';
-    auth.signInWithPopup(googleProvider)
-        .then(userCredential => notifyBackend(userCredential.user))
-        .catch(error => {
-            console.error("Google login failed:", error);
-             // Handle specific cancellation error gracefully
-             if (error.code !== 'auth/popup-closed-by-user') {
-                 authErrorLogin.innerText = error.message;
-             }
-        });
+
+    const email = loginEmail.value.trim();
+    const password = loginPass.value;
+
+    if (!email || !password) {
+        authErrorLogin.innerText = 'Please enter both email and password.';
+        return;
+    }
+
+    try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        await notifyBackend(userCredential.user);
+    } catch (error) {
+        console.error("Login error:", error);
+        switch (error.code) {
+            case 'auth/user-not-found':
+                authErrorLogin.innerText = 'No account found with this email.';
+                break;
+            case 'auth/wrong-password':
+                authErrorLogin.innerText = 'Incorrect password.';
+                break;
+            case 'auth/invalid-email':
+                authErrorLogin.innerText = 'Invalid email address.';
+                break;
+            default:
+                authErrorLogin.innerText = error.message;
+        }
+    }
 });
 
-// Apple Login (Placeholder - Requires specific setup)
+// --- Google Login ---
+btnGoogleLogin.addEventListener('click', async e => {
+    e.preventDefault();
+    authErrorLogin.innerText = '';
+    authErrorRegister.innerText = '';
+
+    try {
+        const result = await auth.signInWithPopup(googleProvider);
+        await notifyBackend(result.user);
+    } catch (error) {
+        console.error("Google login error:", error);
+        if (error.code !== 'auth/popup-closed-by-user') {
+            authErrorLogin.innerText = error.message;
+        }
+    }
+});
+
+// --- Apple Login (Placeholder) ---
 if (btnAppleLogin) {
     btnAppleLogin.addEventListener('click', e => {
         e.preventDefault();
-        authErrorLogin.innerText = 'Apple Login is not yet implemented.';
-        authErrorRegister.innerText = '';
-        console.warn("Apple Login requires additional setup with Apple Developer account and Firebase configuration.");
-        // Add Apple provider logic here when ready
-        // const appleProvider = new firebase.auth.OAuthProvider('apple.com');
-        // auth.signInWithPopup(appleProvider)...
+        authErrorLogin.innerText = 'Apple Login not implemented yet.';
+        console.warn("Apple login requires additional setup.");
     });
 }
 
-
-// Registration (Using Backend API)
-btnRegister.addEventListener('click', e => {
-    e.preventDefault(); // Prevent potential form submission
+// --- Registration Event ---
+btnRegister.addEventListener('click', async e => {
+    e.preventDefault();
     authErrorLogin.innerText = '';
-    authErrorRegister.innerText = ''; // Use register error field
+    authErrorRegister.innerText = '';
 
-    const email = regEmail.value;
+    const email = regEmail.value.trim();
     const password = regPass.value;
-    const displayName = regName.value;
+    const displayName = regName.value.trim();
 
-    // Basic client-side validation
     if (!email || !password || !displayName) {
         authErrorRegister.innerText = 'Please fill in all fields.';
         return;
     }
+
     if (password.length < 6) {
         authErrorRegister.innerText = 'Password must be at least 6 characters.';
         return;
@@ -162,51 +172,31 @@ btnRegister.addEventListener('click', e => {
 
     authErrorRegister.innerText = 'Creating account...';
 
-    // Call our own /api/register endpoint to handle user creation
-    fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            email: email,
-            password: password,
-            displayName: displayName
-        })
-    })
-    .then(response => {
-        console.log("Backend /api/register response status:", response.status); // DEBUG
+    try {
+        // Call backend to create user in Firebase Admin
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, displayName })
+        });
+
         if (!response.ok) {
-            // Try to parse error JSON from backend
-            return response.json().then(errorData => {
-                 console.error("Backend registration error:", errorData); // DEBUG
-                // Use backend error message if available, otherwise generic
-                throw new Error(errorData.error || `Registration failed with status: ${response.status}`);
-            }).catch(parseError => {
-                // If parsing fails (e.g., HTML error page returned)
-                 console.error("Failed to parse backend error response:", parseError); // DEBUG
-                throw new Error(`Registration failed. Server returned status: ${response.status}`);
-            });
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || `Registration failed: ${response.statusText}`);
         }
-        return response.json(); // If response is OK, parse success data
-    })
-    .then(data => {
-        console.log("Backend /api/register success data:", data); // DEBUG
-        if (data.uid) {
-            // Backend Success! Now log the user in on the client side.
-            authErrorRegister.innerText = 'Account created! Logging in...';
-            // Sign in with the same credentials used for registration
-            return auth.signInWithEmailAndPassword(email, password);
-        } else {
-            // Should be caught by !response.ok, but as a fallback
-             throw new Error(data.error || 'Registration succeeded on backend, but no UID returned.');
+
+        const data = await response.json();
+
+        if (!data.uid) {
+            throw new Error(data.error || 'Registration succeeded but no UID returned.');
         }
-    })
-    .then(userCredential => {
-        // Client-side sign-in successful, now notify backend to create server session
-        console.log("Client-side login after registration successful. Notifying backend..."); // DEBUG
-        return notifyBackend(userCredential.user);
-    })
-    .catch(error => {
-        console.error("Registration/Login process error:", error); // DEBUG
-        authErrorRegister.innerText = error.message; // Display final error
-    });
+
+        authErrorRegister.innerText = 'Account created! Logging in...';
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        await notifyBackend(userCredential.user);
+
+    } catch (error) {
+        console.error("Registration error:", error);
+        authErrorRegister.innerText = error.message;
+    }
 });

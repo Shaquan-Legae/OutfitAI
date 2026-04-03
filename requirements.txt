@@ -1,9 +1,12 @@
-Flask
+Flask==3.0.3
 firebase-admin
-google-generativeai
+google-genai>=1.65.0
 numpy
-Pillow
-python-dotenv
-requests
-tensorflow-cpu
-gunicorn
+Pillow>=12.0.0
+python-dotenv==1.0.1
+requests==2.31.0
+gunicorn==21.2.0
+python-3.10.0
+
+# Only include if absolutely needed
+# tensorflow-cpu==2.15.0
