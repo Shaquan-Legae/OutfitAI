@@ -17,17 +17,20 @@ if firebase_key_env:
     # Use the JSON from environment variable
     try:
         service_account_info = json.loads(firebase_key_env)
+        # Fix the private_key line breaks
+        if 'private_key' in service_account_info:
+            service_account_info['private_key'] = service_account_info['private_key'].replace('\\n', '\n')
         cred = credentials.Certificate(service_account_info)
         print("Firebase Admin SDK initialized using environment variable.")
     except json.JSONDecodeError:
-        raise RuntimeError("FIREBASE_KEY_JSON is not valid JSON.")
+        raise RuntimeError("FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.")
 elif os.path.exists(SERVICE_ACCOUNT_PATH):
     # Fallback to local JSON file
     cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
     print(f"Firebase Admin SDK initialized using local file at {SERVICE_ACCOUNT_PATH}.")
 else:
     raise FileNotFoundError(
-        f"serviceAccountKey.json not found at {SERVICE_ACCOUNT_PATH} and FIREBASE_KEY_JSON not set. "
+        f"serviceAccountKey.json not found at {SERVICE_ACCOUNT_PATH} and FIREBASE_SERVICE_ACCOUNT_JSON not set. "
         "Provide the file locally or set the environment variable in Render."
     )
 
