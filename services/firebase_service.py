@@ -11,7 +11,7 @@ from firebase_admin import credentials, auth, firestore, storage
 SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'serviceAccountKey.json')
 
 # Try to get Firebase key from environment (Render) first
-firebase_key_env = os.environ.get("FIREBASE_KEY_JSON")
+firebase_key_env = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
 
 if firebase_key_env:
     # Use the JSON from environment variable
