@@ -1,46 +1,44 @@
-# /OutfitAI/services/firebase_service.py
-
 import os
 import json
 import firebase_admin
 from firebase_admin import credentials, auth, firestore, storage
 
-# --- Initialization Block ---
+# Local development
+LOCAL_SERVICE_ACCOUNT = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "serviceAccountKey.json"
+)
 
-# Absolute path to local serviceAccountKey.json
-SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'serviceAccountKey.json')
+# Render Secret File
+RENDER_SERVICE_ACCOUNT = "/etc/secrets/serviceAccountKey.json"
 
-# Try to get Firebase key from environment (Render) first
-firebase_key_env = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
+# Render Secret File takes priority
+if os.path.exists(RENDER_SERVICE_ACCOUNT):
+    cred = credentials.Certificate(RENDER_SERVICE_ACCOUNT)
+    print("Using Render Secret File.")
 
-if firebase_key_env:
-    # Use the JSON from environment variable
-    try:
-        service_account_info = json.loads(firebase_key_env)
-        # Fix the private_key line breaks
-        if 'private_key' in service_account_info:
-            service_account_info['private_key'] = service_account_info['private_key'].replace('\\n', '\n')
-        cred = credentials.Certificate(service_account_info)
-        print("Firebase Admin SDK initialized using environment variable.")
-    except json.JSONDecodeError:
-        raise RuntimeError("FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.")
-elif os.path.exists(SERVICE_ACCOUNT_PATH):
-    # Fallback to local JSON file
-    cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
-    print(f"Firebase Admin SDK initialized using local file at {SERVICE_ACCOUNT_PATH}.")
+# Local file
+elif os.path.exists(LOCAL_SERVICE_ACCOUNT):
+    cred = credentials.Certificate(LOCAL_SERVICE_ACCOUNT)
+    print("Using local serviceAccountKey.json.")
+
+# Environment variable (optional fallback)
+elif os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
+    service_account_info = json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"])
+    service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
+    cred = credentials.Certificate(service_account_info)
+    print("Using environment variable.")
+
 else:
     raise FileNotFoundError(
-        f"serviceAccountKey.json not found at {SERVICE_ACCOUNT_PATH} and FIREBASE_SERVICE_ACCOUNT_JSON not set. "
-        "Provide the file locally or set the environment variable in Render."
+        "No Firebase credentials found."
     )
 
-# Initialize Firebase Admin SDK only once
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred, {
-        'storageBucket': 'outfitai-a4f33.appspot.com'
+        "storageBucket": "outfitai-a4f33.appspot.com"
     })
 
-# Firebase clients
 db = firestore.client()
 bucket = storage.bucket()
 

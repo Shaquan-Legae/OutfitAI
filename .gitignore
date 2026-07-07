@@ -36,3 +36,8 @@ serviceAccountKey.json
 
 serviceAccountKey.json
 .env
+
+__pycache__/
+OutfitAI.git
+logs
+procfile
