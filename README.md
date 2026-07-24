@@ -1,4 +1,4 @@
-# OutfitAI 👕🤖
+# OutfitAI 👕
 
 OutfitAI is an AI-powered web application that helps students decide what to wear based on the current weather and the clothes already in their wardrobe.
 
