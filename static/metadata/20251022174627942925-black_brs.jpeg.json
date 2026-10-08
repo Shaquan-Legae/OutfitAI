@@ -2,7 +2,7 @@
   "id": "20251022174627942925-black_brs.jpeg",
   "filename": "20251022174627942925-black_brs.jpeg",
   "url": "/static/uploads/20251022174627942925-black_brs.jpeg",
-  "name": "Black Fitted Cap",
+  "name": "Black Fitted Baseball Cap",
   "category": "Accessories",
   "tags": [
     "Radio",
@@ -11,5 +11,21 @@
   ],
   "description": "A grey radio (sporty)",
   "uploaded_at": "2025-10-22T17:46:28.224523",
-  "in_laundry": false
+  "in_laundry": false,
+  "subcategory": "Cap",
+  "colors": [
+    "Black"
+  ],
+  "pattern": "Solid",
+  "material": "Cotton",
+  "fit": "Regular",
+  "styles": [
+    "Streetwear",
+    "Casual"
+  ],
+  "seasons": [
+    "All Season"
+  ],
+  "formality": "Casual",
+  "confidence": 0.94
 }

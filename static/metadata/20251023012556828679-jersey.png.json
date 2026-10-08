@@ -2,8 +2,8 @@
   "id": "20251023012556828679-jersey.png",
   "filename": "20251023012556828679-jersey.png",
   "url": "/static/uploads/20251023012556828679-jersey.png",
-  "name": "Adidas Jacket",
-  "category": "Jackets & Coats",
+  "name": "Adidas Classic Track Jacket",
+  "category": "Outerwear",
   "tags": [
     "Sweatshirt",
     "Black",
@@ -11,5 +11,23 @@
   ],
   "description": "A black sweatshirt (smart-casual)",
   "uploaded_at": "2025-10-23T01:25:58.822492",
-  "in_laundry": false
+  "in_laundry": false,
+  "subcategory": "Jacket",
+  "colors": [
+    "Black",
+    "White"
+  ],
+  "pattern": "Striped",
+  "material": "Polyester",
+  "fit": "Regular",
+  "styles": [
+    "Sporty",
+    "Streetwear"
+  ],
+  "seasons": [
+    "Spring",
+    "Autumn"
+  ],
+  "formality": "Casual",
+  "confidence": 0.95
 }

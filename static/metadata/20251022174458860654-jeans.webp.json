@@ -2,8 +2,8 @@
   "id": "20251022174458860654-jeans.webp",
   "filename": "20251022174458860654-jeans.webp",
   "url": "/static/uploads/20251022174458860654-jeans.webp",
-  "name": "Navy Baggy Jeans",
-  "category": "Pants",
+  "name": "Navy Baggy Skate Jeans",
+  "category": "Bottoms",
   "tags": [
     "Jean",
     "Blue",
@@ -11,5 +11,21 @@
   ],
   "description": "A blue jean (formal)",
   "uploaded_at": "2025-10-22T17:44:59.092797",
-  "in_laundry": true
+  "in_laundry": false,
+  "subcategory": "Jeans",
+  "colors": [
+    "Navy"
+  ],
+  "pattern": "Solid",
+  "material": "Denim",
+  "fit": "Wide-leg",
+  "styles": [
+    "Streetwear",
+    "Casual"
+  ],
+  "seasons": [
+    "All Season"
+  ],
+  "formality": "Casual",
+  "confidence": 0.95
 }

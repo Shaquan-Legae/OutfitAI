@@ -2,8 +2,8 @@
   "id": "20251022182353318654-shorts.webp",
   "filename": "20251022182353318654-shorts.webp",
   "url": "/static/uploads/20251022182353318654-shorts.webp",
-  "name": "Shorts",
-  "category": "Shorts & Skirts",
+  "name": "Gilbert Sweat Shorts",
+  "category": "Bottoms",
   "tags": [
     "Miniskirt",
     "Blue",
@@ -11,5 +11,23 @@
   ],
   "description": "A blue miniskirt (smart-casual)",
   "uploaded_at": "2025-10-22T18:23:53.514657",
-  "in_laundry": false
+  "in_laundry": false,
+  "subcategory": "Shorts",
+  "colors": [
+    "Black"
+  ],
+  "pattern": "Solid",
+  "material": "Fleece",
+  "fit": "Relaxed",
+  "styles": [
+    "Athleisure",
+    "Casual"
+  ],
+  "seasons": [
+    "Spring",
+    "Summer"
+  ],
+  "formality": "Casual",
+  "confidence": 0.93,
+  "updated_at": "2026-10-08T03:35:24.576052"
 }

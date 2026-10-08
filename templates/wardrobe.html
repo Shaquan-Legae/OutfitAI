@@ -4,301 +4,898 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Wardrobe - OutfitAI</title>
+  <title>My Wardrobe — OutfitAI</title>
 
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Editorial Google Fonts: Plus Jakarta Sans & Playfair Display & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Custom Wardrobe Stylesheet -->
+  <link rel="stylesheet" href="/static/css/wardrobe.css">
 
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
           colors: {
-            primary: '#4F46E5',
-            primaryHover: '#4338CA',
-            secondary: '#64748B',
-            laundry: '#F59E0B',
-            surface: '#F1F5F9',
-          },
-          animation: {
-            'fade-in': 'fadeIn 0.3s ease-out forwards',
-            'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-          },
-          keyframes: {
-            fadeIn: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
-            slideUp: { '0%': { transform: 'translateY(100%)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
+            stone: {
+              50: '#FAF9F6',
+              100: '#F3F1EC',
+              200: '#E8E5DD',
+              300: '#D8D4CA',
+              400: '#99958C',
+              500: '#6C6860',
+              800: '#2D2B28',
+              900: '#181715',
+            },
+            terracotta: {
+              50: '#F7EFEA',
+              100: '#E8C8B8',
+              500: '#BA512A',
+              600: '#9E4320',
+            }
           }
         }
       }
     }
   </script>
-
-  <style type="text/tailwindcss">
-    @layer components {
-      /* Layout Utils */
-      .card { @apply bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden; }
-      
-      /* Buttons */
-      .btn { @apply inline-flex justify-center items-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed; }
-      .btn-primary { @apply bg-primary text-white hover:bg-primaryHover shadow-md shadow-indigo-100 focus:ring-primary; }
-      .btn-secondary { @apply bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-200; }
-      
-      /* Inputs */
-      .form-input { @apply mt-1 block w-full px-4 py-2.5 bg-surface border border-slate-200 rounded-xl text-sm text-slate-800 shadow-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all; }
-
-      /* --- ITEM CARD (Optimized for Carousels) --- */
-      /* Fixed width w-32 (128px) x h-40 (160px) */
-      .item-card { 
-        @apply relative group bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm transition-all duration-300 flex-shrink-0 w-32 h-40 snap-start select-none cursor-pointer; 
-      }
-      
-      .item-card:hover { @apply -translate-y-2 shadow-lg ring-2 ring-primary/10; }
-      .item-card img { @apply w-full h-full object-cover transition-transform duration-500 group-hover:scale-110; }
-      
-      /* Overlay */
-      .item-card-overlay {
-        @apply absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left;
-      }
-      
-      .item-name { @apply text-xs font-bold text-white truncate translate-y-2 group-hover:translate-y-0 transition-transform duration-300 delay-75; }
-
-      /* Selection Checkbox */
-      .select-checkbox {
-        @apply absolute top-2 left-2 z-30 w-5 h-5 rounded-full border border-white/40 bg-black/40 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm scale-90;
-      }
-      
-      /* Selected State */
-      .item-card.selected { @apply ring-2 ring-primary border-primary translate-y-[-4px]; }
-      .item-card.selected .select-checkbox { @apply opacity-100 bg-primary border-primary scale-100; }
-      .item-card.selected .item-card-overlay { @apply opacity-100; }
-
-      /* Laundry State */
-      .item-card.is-laundry { @apply border-amber-300 bg-amber-50; }
-      .item-card.is-laundry img { @apply grayscale opacity-70; }
-      .item-card.is-laundry .wash-btn { @apply bg-amber-500 text-white hover:bg-amber-600 opacity-100; }
-      .item-card.is-laundry .item-card-overlay { @apply from-amber-900/80; }
-
-      /* Hover Actions (Wash Button) */
-      .wash-btn { 
-        @apply absolute top-2 right-2 z-30 w-7 h-7 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center border border-white/30 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white hover:text-primary transform translate-y-[-5px] group-hover:translate-y-0; 
-      }
-
-      /* --- FILTERS --- */
-      .filter-btn { @apply px-4 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap select-none; }
-      .filter-btn.active { @apply bg-slate-900 text-white border-slate-900 shadow-md; }
-      .filter-btn.inactive { @apply bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800; }
-      
-      /* --- FLOATING SELECTION BAR --- */
-      .selection-bar {
-        @apply fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900/95 backdrop-blur-sm text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-6 animate-slide-up border border-white/10;
-      }
-    }
-    
-    .hide-scroll::-webkit-scrollbar { display: none; }
-    .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-  </style>
 </head>
 
-<body class="bg-surface text-slate-800 antialiased min-h-screen flex flex-col">
+<body class="bg-[#FAF9F6] text-[#181715] min-h-screen flex flex-col antialiased">
 
-  <nav class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-50">
+  <!-- ======================================================================
+       Site Navigation
+       ====================================================================== -->
+  <header class="bg-[#FAF9F6]/90 backdrop-blur-md border-b border-[#E8E5DD] sticky top-0 z-40 transition-colors">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16">
-        <div class="flex items-center gap-8">
-          <a href="/" class="flex-shrink-0 flex items-center gap-2 group">
+      <div class="relative flex justify-between items-center h-16">
+
+        <!-- Brand & Title -->
+        <div class="flex items-center">
+          <a href="/"
+            class="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#181715] rounded-lg p-1">
             <div
-              class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold shadow-sm group-hover:scale-105 transition-transform">
-              <i class="fa-solid fa-shirt"></i>
+              class="w-8 h-8 rounded-lg bg-[#181715] text-[#FAF9F6] flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
+              <i class="fa-solid fa-vest-patches"></i>
             </div>
-            <span class="text-lg font-bold tracking-tight text-slate-900">OutfitAI</span>
+            <div class="flex flex-col">
+              <span class="text-base font-extrabold tracking-tight text-[#181715]">OutfitAI</span>
+              <span class="text-[9px] font-mono tracking-wider uppercase text-[#6C6860] -mt-1">Wardrobe Studio</span>
+            </div>
           </a>
-          <div class="hidden sm:flex sm:space-x-1">
-            <a href="/"
-              class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Home</a>
-            <a href="/wardrobe" class="text-primary bg-indigo-50 px-3 py-2 rounded-lg text-sm font-medium"
-              aria-current="page">My Wardrobe</a>
-            <a href="/recommendations"
-              class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Suggestions</a>
-          </div>
         </div>
+
+        <!-- Centered Desktop Navigation Links -->
+        <nav class="hidden sm:flex items-center space-x-1 sm:absolute sm:left-1/2 sm:-translate-x-1/2" aria-label="Main Navigation">
+          <a href="/"
+            class="px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#6C6860] hover:text-[#181715] hover:bg-[#F3F1EC] transition-all">Home</a>
+          <a href="/wardrobe"
+            class="px-4 py-1.5 rounded-full text-xs font-bold bg-[#181715] text-[#FAF9F6] shadow-sm"
+            aria-current="page">My Wardrobe</a>
+          <a href="/recommendations"
+            class="px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#6C6860] hover:text-[#181715] hover:bg-[#F3F1EC] transition-all">Suggestions</a>
+        </nav>
+
+        <!-- User Info & Actions -->
         <div class="flex items-center gap-4">
-          <span class="text-sm text-slate-600 hidden md:block">Welcome, <span class="font-semibold text-slate-900">{{
-              user.name }}</span></span>
-          <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition-colors font-medium">
-            <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i>
+          <div class="hidden md:flex items-center gap-2 pl-4 border-l border-[#E8E5DD]">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="text-xs text-[#6C6860]">Signed in as <strong class="text-[#181715] font-semibold">{{ user.name
+                }}</strong></span>
+          </div>
+
+          <a href="/logout"
+            class="text-xs font-semibold text-[#6C6860] hover:text-[#BA512A] transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-[#F3F1EC]"
+            title="Sign out">
+            <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+            <span class="hidden sm:inline">Logout</span>
           </a>
+
+          <!-- Mobile Menu Trigger -->
+          <button id="mobile-menu-btn"
+            class="sm:hidden p-2 rounded-lg text-[#6C6860] hover:text-[#181715] hover:bg-[#F3F1EC] focus:outline-none"
+            aria-label="Toggle navigation menu">
+            <i class="fa-solid fa-bars-staggered text-base"></i>
+          </button>
         </div>
       </div>
     </div>
-  </nav>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow relative">
-
-    <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">My Wardrobe</h1>
-        <p class="mt-1 text-sm text-slate-500">Manage your collection, upload items, and track laundry.</p>
+    <!-- Mobile Slide-out Menu -->
+    <div id="mobile-menu" class="hidden sm:hidden bg-[#FFFFFF] border-b border-[#E8E5DD] px-4 py-4 space-y-2 shadow-lg">
+      <a href="/" class="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#6C6860] hover:bg-[#F3F1EC]">Home</a>
+      <a href="/wardrobe" class="block px-3 py-2.5 rounded-xl text-sm font-bold bg-[#181715] text-[#FAF9F6]">My
+        Wardrobe</a>
+      <a href="/recommendations"
+        class="block px-3 py-2.5 rounded-xl text-sm font-medium text-[#6C6860] hover:bg-[#F3F1EC]">Suggestions</a>
+      <div class="pt-3 border-t border-[#E8E5DD] text-xs text-[#6C6860]">
+        Signed in as <span class="font-bold text-[#181715]">{{ user.name }}</span>
       </div>
-      <div class="flex gap-2">
-        <button id="toggle-selection-btn" class="btn btn-secondary text-xs">
-          <i class="fa-regular fa-square-check mr-2"></i> Select Items
+    </div>
+  </header>
+
+  <!-- ======================================================================
+       Main Wardrobe Body
+       ====================================================================== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+    <!-- 1. Editorial Header & Primary Actions -->
+    <section class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-[#E8E5DD]">
+      <div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#181715]">My Wardrobe</h1>
+        <p class="mt-1 text-sm sm:text-base text-[#6C6860] font-normal">
+          Your closet, organised. Drop any clothing photo and OutfitAI will identify, classify, and catalog it.
+        </p>
+      </div>
+
+      <!-- Header CTAs -->
+      <div class="flex items-center gap-3">
+        <button id="toggle-upload-drawer-btn" class="btn-atelier btn-atelier-accent" aria-expanded="false"
+          aria-controls="upload-studio-section">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>Add Item</span>
+        </button>
+
+        <button id="toggle-selection-btn" class="btn-atelier btn-atelier-secondary"
+          aria-label="Toggle batch select mode">
+          <i class="fa-regular fa-square-check text-xs"></i>
+          <span id="select-btn-text">Select Items</span>
         </button>
       </div>
-    </div>
+    </section>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- 2. Compact Wardrobe Metrics Strip -->
+    <section
+      class="py-4 border-b border-[#E8E5DD] flex items-center justify-between overflow-x-auto hide-scroll gap-6 text-xs text-[#6C6860]"
+      aria-label="Wardrobe Statistics">
+      <div class="flex items-center gap-6 whitespace-nowrap" id="stats-summary-strip">
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-[#181715] font-tabular text-sm" id="stat-total-items">0</span>
+          <span class="uppercase tracking-wider text-[10px] text-[#99958C]">Total Garments</span>
+        </div>
+        <span class="text-[#E8E5DD]">/</span>
+        <div class="flex items-center gap-1.5 cursor-pointer hover:text-[#181715]"
+          onclick="selectCategoryFilter('Tops')">
+          <span class="font-bold text-[#181715] font-tabular" id="stat-tops">0</span>
+          <span>Tops</span>
+        </div>
+        <span class="text-[#E8E5DD]">/</span>
+        <div class="flex items-center gap-1.5 cursor-pointer hover:text-[#181715]"
+          onclick="selectCategoryFilter('Bottoms')">
+          <span class="font-bold text-[#181715] font-tabular" id="stat-bottoms">0</span>
+          <span>Bottoms</span>
+        </div>
+        <span class="text-[#E8E5DD]">/</span>
+        <div class="flex items-center gap-1.5 cursor-pointer hover:text-[#181715]"
+          onclick="selectCategoryFilter('Outerwear')">
+          <span class="font-bold text-[#181715] font-tabular" id="stat-outerwear">0</span>
+          <span>Outerwear</span>
+        </div>
+        <span class="text-[#E8E5DD]">/</span>
+        <div class="flex items-center gap-1.5 cursor-pointer hover:text-[#181715]"
+          onclick="selectCategoryFilter('Shoes')">
+          <span class="font-bold text-[#181715] font-tabular" id="stat-shoes">0</span>
+          <span>Shoes</span>
+        </div>
+        <span class="text-[#E8E5DD]">/</span>
+        <div class="flex items-center gap-1.5 cursor-pointer hover:text-[#181715]"
+          onclick="selectCategoryFilter('Accessories')">
+          <span class="font-bold text-[#181715] font-tabular" id="stat-accessories">0</span>
+          <span>Accessories</span>
+        </div>
+      </div>
 
-      <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-24 z-30">
+      <!-- Quick Laundry Counter Indicator -->
+      <button id="laundry-archive-toggle-btn"
+        class="flex items-center gap-2 px-3 py-1 rounded-full bg-[#FEF3C7] text-[#A16207] border border-[#FDE68A] hover:bg-[#FDE68A] transition-colors whitespace-nowrap flex-shrink-0"
+        title="Click to view laundry basket">
+        <i class="fa-solid fa-basket-shopping text-xs"></i>
+        <span class="font-bold font-tabular" id="stat-laundry">0</span>
+        <span class="text-[11px] font-semibold">in Laundry</span>
+      </button>
+    </section>
 
-        <div class="card p-5">
-          <h2 class="text-xs font-bold text-slate-400 mb-4 flex items-center gap-2 uppercase tracking-wide">
-            Add New Item
-          </h2>
+    <!-- ======================================================================
+         3. UPLOAD STUDIO & AI RECOGNITION (Expandable Drawer)
+         ====================================================================== -->
+    <section id="upload-studio-section" class="my-6 hidden transition-all duration-300">
+      <div class="bg-[#FFFFFF] border border-[#E8E5DD] rounded-2xl p-6 sm:p-8 shadow-sm">
 
-          <form id="upload-form">
-            <div id="drop-zone"
-              class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-indigo-50/30 transition-all duration-200 group bg-slate-50">
-              <div class="flex flex-col items-center justify-center">
-                <i
-                  class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 mb-2 group-hover:text-primary transition-colors"></i>
-                <p class="text-xs text-slate-600 font-medium">Click or drag image</p>
+        <div class="flex items-center justify-between pb-4 mb-6 border-b border-[#E8E5DD]">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded-full bg-[#F7EFEA] text-[#BA512A] flex items-center justify-center text-sm font-bold">
+              <i class="fa-solid fa-camera"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-[#181715]">Add Item to Wardrobe</h2>
+              <p class="text-xs text-[#6C6860]">Drop an image below — Gemini AI will automatically name, classify, and
+                extract attributes.</p>
+            </div>
+          </div>
+          <button type="button" id="close-upload-drawer-btn"
+            class="text-[#99958C] hover:text-[#181715] p-2 rounded-full hover:bg-[#F3F1EC] transition-colors"
+            aria-label="Close add item panel">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+
+        <!-- Upload Step 1: Dropzone -->
+        <div id="dropzone-view" class="space-y-4">
+          <div id="drop-zone" class="dropzone-container group" tabindex="0" role="button"
+            aria-label="Drop or upload clothing image">
+            <div class="max-w-sm mx-auto flex flex-col items-center justify-center">
+              <div
+                class="w-14 h-14 rounded-2xl bg-[#F3F1EC] flex items-center justify-center text-[#6C6860] group-hover:text-[#BA512A] group-hover:scale-110 transition-all mb-3">
+                <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+              </div>
+              <h3 class="text-sm font-bold text-[#181715] mb-1">Drop your clothing photo here</h3>
+              <p class="text-xs text-[#6C6860] mb-3">or <span
+                  class="text-[#BA512A] font-semibold underline underline-offset-2">browse your files</span></p>
+              <div class="flex items-center gap-2 text-[10px] text-[#99958C] font-mono uppercase tracking-wider">
+                <span>PNG</span> • <span>JPG</span> • <span>WEBP</span> • <span>MAX 10MB</span>
               </div>
             </div>
             <input type="file" id="file-input" name="file" accept="image/*" class="hidden">
+          </div>
+        </div>
 
-            <div id="preview-area" class="hidden mt-4 relative group">
-              <img id="image-preview" src="#" alt="Preview"
-                class="w-full h-40 object-cover rounded-lg border border-slate-200">
-              <button type="button" id="cancel-preview"
-                class="absolute top-2 right-2 bg-white/90 text-slate-600 hover:text-red-600 rounded-full w-6 h-6 flex items-center justify-center shadow-md transition-all">
-                <i class="fa-solid fa-xmark text-xs"></i>
-              </button>
-            </div>
+        <!-- Upload Step 2: AI Scanning Animation View -->
+        <div id="scanning-view" class="hidden py-8 flex flex-col items-center justify-center text-center">
+          <div
+            class="relative w-48 h-60 rounded-xl overflow-hidden shadow-md border border-[#E8E5DD] mb-5 bg-[#F3F1EC]">
+            <img id="scanning-preview-img" src="#" alt="Scanning garment" class="w-full h-full object-contain p-2">
+            <div class="scanner-sheen"></div>
+            <div class="scanner-beam"></div>
+          </div>
 
-            <div id="item-details-form" class="hidden space-y-3 mt-4 animate-fade-in">
-              <input type="text" id="item-name" name="item_name" required placeholder="Item Name" class="form-input">
-              <div class="relative">
-                <select id="item-category" name="item_category" required
-                  class="form-input appearance-none cursor-pointer">
-                  <option value="" disabled selected>Category...</option>
-                  <option value="Tops">Tops</option>
-                  <option value="Sweaters & Hoodies">Sweaters</option>
-                  <option value="Jackets & Coats">Jackets</option>
-                  <option value="Pants">Pants</option>
-                  <option value="Shorts & Skirts">Shorts</option>
-                  <option value="Dresses & Jumpsuits">Dresses</option>
-                  <option value="Shoes">Shoes</option>
-                  <option value="Accessories">Accessories</option>
-                </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500"><i
-                    class="fa-solid fa-chevron-down text-xs"></i></div>
-              </div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="status-pulse"></span>
+            <h3 id="scanning-status-title" class="text-sm font-bold text-[#181715]">Reading your item...</h3>
+          </div>
+          <p id="scanning-status-subtitle" class="text-xs text-[#6C6860] max-w-sm">
+            OutfitAI is evaluating garment silhouettes, fabric textures, and color tones.
+          </p>
+        </div>
+
+        <!-- Upload Step 3: AI Result Review & Confirmation Panel -->
+        <div id="review-view" class="hidden animate-fade-in">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+            <!-- Left: Visual Garment Preview -->
+            <div class="lg:col-span-5 flex flex-col items-center">
               <div
-                class="flex items-center gap-2 p-2.5 bg-amber-50/50 rounded-lg border border-amber-100 cursor-pointer hover:bg-amber-50">
-                <input type="checkbox" id="in-laundry-checkbox" name="in_laundry"
-                  class="w-4 h-4 text-amber-500 rounded focus:ring-amber-500 cursor-pointer">
-                <label for="in-laundry-checkbox"
-                  class="text-xs font-medium text-slate-700 cursor-pointer select-none">Add to Laundry Basket</label>
+                class="relative w-full aspect-[4/4.75] bg-[#F3F1EC] border border-[#E8E5DD] rounded-xl overflow-hidden flex items-center justify-center p-4">
+                <img id="review-preview-img" src="#" alt="Recognized clothing item"
+                  class="w-full h-full object-contain drop-shadow-sm">
+
+                <!-- Confidence Score Badge -->
+                <div class="absolute top-3 left-3 confidence-meter" id="review-confidence-badge"
+                  title="AI Recognition Certainty">
+                  <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                  <span id="review-confidence-text">95% Match</span>
+                </div>
+
+                <!-- Replace / Retake Button -->
+                <button type="button" id="review-retake-btn"
+                  class="absolute top-3 right-3 text-xs bg-white/90 hover:bg-white text-[#181715] px-2.5 py-1 rounded-full border border-[#E8E5DD] shadow-sm font-semibold flex items-center gap-1 transition-all">
+                  <i class="fa-solid fa-arrows-rotate text-[10px]"></i> Replace
+                </button>
               </div>
-              <button type="submit" id="submit-button" class="btn btn-primary w-full py-2.5 shadow-md shadow-indigo-100"
-                disabled>Add Item</button>
+
+              <p class="text-[11px] text-[#99958C] mt-2 text-center">
+                Review and adjust details before saving to your digital archive.
+              </p>
             </div>
-            <p id="upload-status" class="text-center text-[10px] mt-2 font-semibold h-3"></p>
-          </form>
+
+            <!-- Right: Editable Structured Form -->
+            <div class="lg:col-span-7 space-y-4">
+
+              <!-- Human-Friendly Garment Name -->
+              <div>
+                <label for="review-item-name"
+                  class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">
+                  Item Name <span class="text-[#BA512A]">*</span>
+                </label>
+                <div class="relative">
+                  <input type="text" id="review-item-name" name="item_name" required
+                    placeholder="e.g. Black Oversized Hoodie"
+                    class="editorial-input font-bold text-sm text-[#181715] pl-9">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#99958C]">
+                    <i class="fa-solid fa-tag text-xs"></i>
+                  </div>
+                </div>
+                <p class="text-[11px] text-[#99958C] mt-1">AI combines color + signature fit + garment type.</p>
+              </div>
+
+              <!-- Category & Subcategory Cascade -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="review-category"
+                    class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">
+                    Primary Category <span class="text-[#BA512A]">*</span>
+                  </label>
+                  <select id="review-category" name="item_category" class="editorial-input text-xs font-semibold"
+                    required>
+                    <option value="Tops">Tops</option>
+                    <option value="Bottoms">Bottoms</option>
+                    <option value="Dresses">Dresses</option>
+                    <option value="Outerwear">Outerwear</option>
+                    <option value="Shoes">Shoes</option>
+                    <option value="Accessories">Accessories</option>
+                    <option value="Activewear">Activewear</option>
+                    <option value="Formalwear">Formalwear</option>
+                    <option value="Swimwear">Swimwear</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="review-subcategory"
+                    class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">
+                    Subcategory <span class="text-[#BA512A]">*</span>
+                  </label>
+                  <select id="review-subcategory" name="item_subcategory" class="editorial-input text-xs font-semibold"
+                    required>
+                    <!-- Dynamically populated based on category -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Colors & Pattern -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">
+                    Colors
+                  </label>
+                  <div id="review-colors-container"
+                    class="flex flex-wrap gap-1.5 p-2 bg-[#F3F1EC] rounded-lg min-h-[42px] items-center">
+                    <!-- Injected color chips -->
+                  </div>
+                  <div class="flex items-center gap-2 mt-1.5">
+                    <input type="text" id="add-color-input" placeholder="Add color..."
+                      class="editorial-input text-xs py-1 px-2.5 flex-grow">
+                    <button type="button" id="add-color-btn"
+                      class="btn-atelier btn-atelier-secondary py-1 px-3 text-xs">Add</button>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="review-pattern"
+                    class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">
+                    Pattern
+                  </label>
+                  <select id="review-pattern" name="pattern" class="editorial-input text-xs">
+                    <option value="Solid">Solid</option>
+                    <option value="Striped">Striped</option>
+                    <option value="Checked">Checked</option>
+                    <option value="Plaid">Plaid</option>
+                    <option value="Floral">Floral</option>
+                    <option value="Graphic">Graphic</option>
+                    <option value="Camo">Camo</option>
+                    <option value="Polka Dot">Polka Dot</option>
+                    <option value="Abstract">Abstract</option>
+                    <option value="Textured">Textured</option>
+                    <option value="Unknown">Unknown</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Fit & Material -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="review-fit" class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">
+                    Fit
+                  </label>
+                  <select id="review-fit" name="fit" class="editorial-input text-xs">
+                    <option value="Regular">Regular</option>
+                    <option value="Slim">Slim</option>
+                    <option value="Relaxed">Relaxed</option>
+                    <option value="Oversized">Oversized</option>
+                    <option value="Skinny">Skinny</option>
+                    <option value="Straight">Straight</option>
+                    <option value="Wide-leg">Wide-leg</option>
+                    <option value="Cropped">Cropped</option>
+                    <option value="Unknown">Unknown</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="review-material"
+                    class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">
+                    Material
+                  </label>
+                  <input type="text" id="review-material" name="material" placeholder="e.g. Cotton, Denim"
+                    class="editorial-input text-xs">
+                </div>
+              </div>
+
+              <!-- Style Chips & Season Chips -->
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">
+                  Styles & Occasions
+                </label>
+                <div id="review-styles-chips" class="flex flex-wrap gap-1.5">
+                  <span class="chip-toggle" data-val="Casual">Casual</span>
+                  <span class="chip-toggle" data-val="Streetwear">Streetwear</span>
+                  <span class="chip-toggle" data-val="Minimal">Minimal</span>
+                  <span class="chip-toggle" data-val="Smart Casual">Smart Casual</span>
+                  <span class="chip-toggle" data-val="Sporty">Sporty</span>
+                  <span class="chip-toggle" data-val="Preppy">Preppy</span>
+                  <span class="chip-toggle" data-val="Formal">Formal</span>
+                  <span class="chip-toggle" data-val="Athleisure">Athleisure</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">
+                  Season Suitability
+                </label>
+                <div id="review-seasons-chips" class="flex flex-wrap gap-1.5">
+                  <span class="chip-toggle" data-val="Spring">Spring</span>
+                  <span class="chip-toggle" data-val="Summer">Summer</span>
+                  <span class="chip-toggle" data-val="Autumn">Autumn</span>
+                  <span class="chip-toggle" data-val="Winter">Winter</span>
+                  <span class="chip-toggle" data-val="All Season">All Season</span>
+                </div>
+              </div>
+
+              <!-- Laundry Checkbox Toggle -->
+              <div
+                class="flex items-center gap-3 p-3 bg-[#FEF3C7]/40 border border-[#FDE68A] rounded-xl cursor-pointer hover:bg-[#FEF3C7]/70 transition-colors">
+                <input type="checkbox" id="review-laundry-checkbox" name="in_laundry"
+                  class="w-4 h-4 rounded text-[#BA512A] focus:ring-[#BA512A] cursor-pointer">
+                <label for="review-laundry-checkbox"
+                  class="text-xs font-semibold text-[#181715] cursor-pointer select-none">
+                  Currently in laundry basket (temporarily exclude from daily outfit suggestions)
+                </label>
+              </div>
+
+              <!-- Form Buttons -->
+              <div class="flex items-center gap-3 pt-3">
+                <button type="button" id="confirm-save-btn"
+                  class="btn-atelier btn-atelier-accent flex-grow py-3 text-sm">
+                  <i class="fa-solid fa-check mr-1.5"></i> Add to Wardrobe
+                </button>
+                <button type="button" id="cancel-upload-btn"
+                  class="btn-atelier btn-atelier-secondary py-3 px-5 text-sm">
+                  Cancel
+                </button>
+              </div>
+
+              <!-- Status Banner -->
+              <p id="save-status-msg" class="text-xs text-center font-semibold h-4"></p>
+            </div>
+          </div>
         </div>
 
-        <div id="laundry-basket-card"
-          class="card p-5 border-l-4 border-l-laundry bg-gradient-to-br from-amber-50/50 to-white">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xs font-bold text-amber-600 flex items-center gap-2 uppercase tracking-wide">
-              <i class="fa-solid fa-basket-shopping text-laundry"></i> Laundry Basket
-            </h2>
-            <span id="laundry-count"
-              class="bg-white text-amber-600 border border-amber-100 text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         4. WARDROBE CONTROLS: CATEGORIES, SEARCH, FILTER & SORT
+         ====================================================================== -->
+    <section class="mt-8 space-y-4" aria-label="Wardrobe Navigation & Filtering">
+
+      <!-- Primary Category Navigation Bar (Horizontally scrollable) -->
+      <div class="flex items-center gap-2 overflow-x-auto hide-scroll py-1" id="category-filter-nav" role="tablist">
+        <button class="cat-pill active" data-category="All" role="tab" aria-selected="true">
+          <span>All Items</span>
+          <span class="pill-count" id="count-All">0</span>
+        </button>
+        <button class="cat-pill" data-category="Tops" role="tab" aria-selected="false">
+          <span>Tops</span>
+          <span class="pill-count" id="count-Tops">0</span>
+        </button>
+        <button class="cat-pill" data-category="Bottoms" role="tab" aria-selected="false">
+          <span>Bottoms</span>
+          <span class="pill-count" id="count-Bottoms">0</span>
+        </button>
+        <button class="cat-pill" data-category="Outerwear" role="tab" aria-selected="false">
+          <span>Outerwear</span>
+          <span class="pill-count" id="count-Outerwear">0</span>
+        </button>
+        <button class="cat-pill" data-category="Shoes" role="tab" aria-selected="false">
+          <span>Shoes</span>
+          <span class="pill-count" id="count-Shoes">0</span>
+        </button>
+        <button class="cat-pill" data-category="Dresses" role="tab" aria-selected="false">
+          <span>Dresses</span>
+          <span class="pill-count" id="count-Dresses">0</span>
+        </button>
+        <button class="cat-pill" data-category="Accessories" role="tab" aria-selected="false">
+          <span>Accessories</span>
+          <span class="pill-count" id="count-Accessories">0</span>
+        </button>
+        <button class="cat-pill" data-category="Activewear" role="tab" aria-selected="false">
+          <span>Activewear</span>
+          <span class="pill-count" id="count-Activewear">0</span>
+        </button>
+        <button class="cat-pill" data-category="Formalwear" role="tab" aria-selected="false">
+          <span>Formalwear</span>
+          <span class="pill-count" id="count-Formalwear">0</span>
+        </button>
+      </div>
+
+      <!-- Search, Detailed Filter, and Sort Controls -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+
+        <!-- Live Search Input -->
+        <div class="relative flex-grow max-w-lg">
+          <input type="text" id="wardrobe-search-input"
+            placeholder="Search wardrobe by name, color, style, fabric, or occasion..."
+            class="editorial-input pl-9 pr-8 text-xs bg-[#FFFFFF] shadow-sm">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#99958C]">
+            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+          </div>
+          <button id="clear-search-btn"
+            class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-[#99958C] hover:text-[#181715]"
+            aria-label="Clear search query">
+            <i class="fa-solid fa-circle-xmark text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Filter & Sort Buttons -->
+        <div class="flex items-center gap-2 self-end sm:self-auto">
+
+          <!-- Filters Popover Trigger -->
+          <button id="filter-modal-trigger" class="btn-atelier btn-atelier-secondary text-xs px-3.5 py-2 shadow-sm"
+            aria-haspopup="dialog" aria-expanded="false">
+            <i class="fa-solid fa-sliders text-xs"></i>
+            <span>Filters</span>
+            <span id="active-filter-badge"
+              class="hidden ml-1 w-4 h-4 rounded-full bg-[#BA512A] text-white text-[10px] flex items-center justify-center font-mono">0</span>
+          </button>
+
+          <!-- Sort Select -->
+          <div class="relative">
+            <select id="wardrobe-sort-select"
+              class="editorial-input text-xs py-2 pl-3 pr-8 bg-[#FFFFFF] shadow-sm cursor-pointer"
+              aria-label="Sort wardrobe items">
+              <option value="newest">Newest Added</option>
+              <option value="oldest">Oldest First</option>
+              <option value="name_asc">Name (A-Z)</option>
+              <option value="name_desc">Name (Z-A)</option>
+              <option value="category">Category</option>
+            </select>
           </div>
 
-          <div class="relative group/carousel">
-            <button id="laundry-scroll-left"
-              class="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 bg-white shadow-md rounded-full flex items-center justify-center text-slate-400 hover:text-primary opacity-0 group-hover/carousel:opacity-100 transition-all disabled:opacity-0"><i
-                class="fa-solid fa-chevron-left text-[10px]"></i></button>
-
-            <div id="laundry-items-carousel"
-              class="flex gap-3 overflow-x-auto hide-scroll pb-2 snap-x scroll-smooth min-h-[80px] items-center">
-              <p id="laundry-empty" class="text-xs text-slate-400 italic w-full text-center">Basket is clean.</p>
-            </div>
-
-            <button id="laundry-scroll-right"
-              class="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 bg-white shadow-md rounded-full flex items-center justify-center text-slate-400 hover:text-primary opacity-0 group-hover/carousel:opacity-100 transition-all disabled:opacity-0"><i
-                class="fa-solid fa-chevron-right text-[10px]"></i></button>
-          </div>
+          <!-- Laundry Status Toggle View -->
+          <button id="laundry-filter-btn" class="btn-atelier btn-atelier-secondary text-xs px-3 py-2 shadow-sm"
+            title="Show only clean or only laundry items">
+            <i class="fa-solid fa-shirt text-xs"></i>
+            <span id="laundry-filter-label">Clean Only</span>
+          </button>
         </div>
       </div>
 
-      <div class="lg:col-span-8">
-        <div class="card p-6 min-h-[600px] bg-white">
-
-          <div class="sticky top-0 bg-white z-20 pb-4 pt-1 border-b border-slate-100 mb-6">
-            <div class="flex items-center gap-2 overflow-x-auto hide-scroll pb-1" id="category-filters">
-            </div>
-          </div>
-
-          <div id="gallery-container" class="space-y-8">
-            <div id="gallery-loading" class="flex flex-col items-center justify-center py-20 text-slate-400">
-              <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3 text-primary"></i>
-              <p class="text-sm font-medium">Organizing your closet...</p>
-            </div>
-            <div id="gallery-empty" class="hidden flex flex-col items-center justify-center py-20 text-center">
-              <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4"><i
-                  class="fa-solid fa-hanger text-2xl text-slate-300"></i></div>
-              <h3 class="text-sm font-bold text-slate-900">Closet Empty</h3>
-              <p class="text-xs text-slate-500 mt-1">Time to go shopping (or uploading)!</p>
-            </div>
-          </div>
-        </div>
+      <!-- Active Filter Tags Strip -->
+      <div id="active-filters-chips-strip" class="hidden flex flex-wrap items-center gap-2 pt-1 text-xs text-[#6C6860]">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#99958C]">Active Filters:</span>
+        <div id="filter-chips-list" class="flex flex-wrap gap-1.5"></div>
+        <button id="clear-all-filters-btn" class="text-xs font-semibold text-[#BA512A] hover:underline ml-2">Clear
+          All</button>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <div id="selection-bar" class="hidden selection-bar">
+    <!-- ======================================================================
+         5. CLOTHING CARDS GRID
+         ====================================================================== -->
+    <section class="mt-8 mb-16" aria-label="Wardrobe Garments Grid">
 
-    <div class="flex items-center gap-3 border-r border-slate-700 pr-4 mr-2">
-      <label class="flex items-center gap-2 cursor-pointer group">
-        <div class="relative">
-          <input type="checkbox" id="select-all-radio" class="peer sr-only">
-          <div
-            class="w-4 h-4 rounded-full border border-slate-400 peer-checked:bg-primary peer-checked:border-primary transition-all">
-          </div>
-          <div
-            class="absolute inset-0 flex items-center justify-center text-white scale-0 peer-checked:scale-100 transition-transform text-[8px]">
-            <i class="fa-solid fa-check"></i></div>
+      <!-- Loading Skeleton -->
+      <div id="wardrobe-loading" class="flex flex-col items-center justify-center py-24 text-[#6C6860]">
+        <div class="w-10 h-10 border-2 border-[#181715] border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-sm font-semibold text-[#181715]">Curating your wardrobe...</p>
+        <p class="text-xs text-[#99958C] mt-1">Connecting to Firestore & local archive</p>
+      </div>
+
+      <!-- Empty State: No Items At All -->
+      <div id="wardrobe-empty-state" class="hidden py-24 text-center max-w-md mx-auto">
+        <div
+          class="w-16 h-16 rounded-full bg-[#F3F1EC] text-[#6C6860] flex items-center justify-center mx-auto mb-4 text-2xl">
+          <i class="fa-solid fa-hanger"></i>
         </div>
-        <span class="text-xs font-medium text-slate-300 group-hover:text-white transition-colors">All</span>
+        <h3 class="text-lg font-bold text-[#181715] mb-1">Your wardrobe is empty</h3>
+        <p class="text-xs text-[#6C6860] mb-6 leading-relaxed">
+          Drop a clothing photo here and OutfitAI will identify it for you. Start building your digital closet to
+          receive personalized outfit suggestions.
+        </p>
+        <button onclick="document.getElementById('toggle-upload-drawer-btn').click()"
+          class="btn-atelier btn-atelier-accent px-6 py-2.5">
+          <i class="fa-solid fa-camera mr-2"></i> Add your first item
+        </button>
+      </div>
+
+      <!-- Empty State: No Search/Filter Results -->
+      <div id="wardrobe-no-results-state" class="hidden py-20 text-center max-w-sm mx-auto">
+        <div
+          class="w-12 h-12 rounded-full bg-[#F3F1EC] text-[#99958C] flex items-center justify-center mx-auto mb-3 text-lg">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <h3 class="text-base font-bold text-[#181715] mb-1">No garments found</h3>
+        <p class="text-xs text-[#6C6860] mb-4">
+          No items match your active search or filter selection.
+        </p>
+        <button id="reset-search-filters-btn" class="btn-atelier btn-atelier-secondary text-xs">
+          Clear Filters
+        </button>
+      </div>
+
+      <!-- Main Clothing Grid -->
+      <div id="clothing-grid"
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+        <!-- Rendered by wardrobe.js createClothingCard() -->
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         6. LAUNDRY ARCHIVE DRAWER / SECTION
+         ====================================================================== -->
+    <section id="laundry-archive-section" class="hidden my-8 p-6 bg-[#FEF3C7]/30 border border-[#FDE68A] rounded-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-7 h-7 rounded-full bg-[#FEF3C7] text-[#A16207] flex items-center justify-center text-xs">
+            <i class="fa-solid fa-basket-shopping"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-[#181715]">Laundry Basket Archive</h3>
+            <p class="text-xs text-[#6C6860]">Items marked in laundry are excluded from outfit suggestions until washed.
+            </p>
+          </div>
+        </div>
+
+        <button id="clean-all-laundry-btn" class="btn-atelier btn-atelier-secondary text-xs py-1.5 px-3">
+          <i class="fa-solid fa-sparkles mr-1 text-amber-600"></i> Mark All Clean
+        </button>
+      </div>
+
+      <div id="laundry-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+        <!-- In-laundry items injected here -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================================
+       7. FLOATING BATCH SELECTION DOCK
+       ====================================================================== -->
+  <aside id="batch-dock" class="hidden batch-dock" aria-label="Batch Actions Toolbar">
+    <div class="flex items-center gap-3 pr-3 border-r border-white/20">
+      <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold">
+        <input type="checkbox" id="select-all-checkbox"
+          class="w-4 h-4 rounded text-[#BA512A] focus:ring-0 cursor-pointer">
+        <span>All</span>
       </label>
+      <span class="text-xs font-mono text-[#D8D4CA]"><strong id="selected-items-count"
+          class="text-white font-bold">0</strong> Selected</span>
     </div>
 
-    <span class="text-sm font-semibold whitespace-nowrap"><span id="selected-count" class="text-primary">0</span>
-      Selected</span>
-
-    <div class="flex items-center gap-2 ml-auto">
-      <button id="batch-wash-btn"
-        class="w-9 h-9 rounded-full bg-slate-800 hover:bg-amber-500 hover:text-white text-amber-400 transition-all flex items-center justify-center"
-        title="Toggle Laundry">
-        <i class="fa-solid fa-jug-detergent text-xs"></i>
+    <div class="flex items-center gap-2">
+      <button id="batch-wash-btn" class="action-icon-btn bg-white/10 text-white hover:bg-amber-500 border-white/10"
+        title="Toggle Laundry Status">
+        <i class="fa-solid fa-jug-detergent"></i>
       </button>
-      <button id="batch-delete-btn"
-        class="w-9 h-9 rounded-full bg-slate-800 hover:bg-red-500 hover:text-white text-red-400 transition-all flex items-center justify-center"
-        title="Delete">
-        <i class="fa-solid fa-trash-can text-xs"></i>
+
+      <button id="batch-delete-btn" class="action-icon-btn bg-white/10 text-white hover:bg-red-600 border-white/10"
+        title="Delete Selected">
+        <i class="fa-solid fa-trash-can"></i>
       </button>
     </div>
 
-    <button id="cancel-selection-btn"
-      class="bg-white text-slate-900 hover:bg-slate-200 px-4 py-1.5 rounded-full text-xs font-bold ml-2">Done</button>
+    <button id="exit-selection-btn"
+      class="text-xs font-bold text-[#181715] bg-[#FFFFFF] px-3.5 py-1.5 rounded-full hover:bg-[#F3F1EC] transition-colors">
+      Done
+    </button>
+  </aside>
+
+  <!-- ======================================================================
+       8. COMPACT FILTER MODAL / BOTTOM SHEET
+       ====================================================================== -->
+  <div id="filter-modal" class="hidden modal-backdrop" role="dialog" aria-modal="true"
+    aria-labelledby="filter-modal-title">
+    <div
+      class="bg-[#FFFFFF] rounded-2xl border border-[#E8E5DD] max-w-lg w-full p-6 shadow-2xl space-y-5 animate-fade-in max-h-[90vh] overflow-y-auto">
+
+      <div class="flex items-center justify-between pb-3 border-b border-[#E8E5DD]">
+        <h3 id="filter-modal-title" class="text-base font-bold text-[#181715] flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-[#BA512A]"></i> Refine Wardrobe
+        </h3>
+        <button id="close-filter-modal-btn"
+          class="text-[#99958C] hover:text-[#181715] p-1.5 rounded-full hover:bg-[#F3F1EC]" aria-label="Close filters">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Filter Section: Color -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-2">Color</label>
+        <div id="filter-color-options" class="flex flex-wrap gap-1.5">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Filter Section: Style -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-2">Style</label>
+        <div id="filter-style-options" class="flex flex-wrap gap-1.5">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Filter Section: Season -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-2">Season</label>
+        <div id="filter-season-options" class="flex flex-wrap gap-1.5">
+          <span class="chip-toggle" data-filter="season" data-val="Spring">Spring</span>
+          <span class="chip-toggle" data-filter="season" data-val="Summer">Summer</span>
+          <span class="chip-toggle" data-filter="season" data-val="Autumn">Autumn</span>
+          <span class="chip-toggle" data-filter="season" data-val="Winter">Winter</span>
+          <span class="chip-toggle" data-filter="season" data-val="All Season">All Season</span>
+        </div>
+      </div>
+
+      <!-- Filter Section: Fit -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-2">Fit</label>
+        <div id="filter-fit-options" class="flex flex-wrap gap-1.5">
+          <span class="chip-toggle" data-filter="fit" data-val="Regular">Regular</span>
+          <span class="chip-toggle" data-filter="fit" data-val="Relaxed">Relaxed</span>
+          <span class="chip-toggle" data-filter="fit" data-val="Oversized">Oversized</span>
+          <span class="chip-toggle" data-filter="fit" data-val="Slim">Slim</span>
+          <span class="chip-toggle" data-filter="fit" data-val="Wide-leg">Wide-leg</span>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-[#E8E5DD]">
+        <button id="modal-clear-filters-btn" class="text-xs font-bold text-[#BA512A] hover:underline">
+          Reset All
+        </button>
+        <button id="apply-filters-btn" class="btn-atelier btn-atelier-primary px-6 py-2 text-xs">
+          Apply Filters
+        </button>
+      </div>
+
+    </div>
   </div>
 
+  <!-- ======================================================================
+       9. ITEM EDIT MODAL (Quick edit existing item metadata)
+       ====================================================================== -->
+  <div id="item-edit-modal" class="hidden modal-backdrop" role="dialog" aria-modal="true"
+    aria-labelledby="edit-modal-title">
+    <div
+      class="bg-[#FFFFFF] rounded-2xl border border-[#E8E5DD] max-w-lg w-full p-6 shadow-2xl space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
+
+      <div class="flex items-center justify-between pb-3 border-b border-[#E8E5DD]">
+        <h3 id="edit-modal-title" class="text-base font-bold text-[#181715] flex items-center gap-2">
+          <i class="fa-solid fa-pen text-[#BA512A]"></i> Edit Wardrobe Item
+        </h3>
+        <button id="close-edit-modal-btn"
+          class="text-[#99958C] hover:text-[#181715] p-1.5 rounded-full hover:bg-[#F3F1EC]"
+          aria-label="Close edit modal">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="edit-item-form" class="space-y-4">
+        <input type="hidden" id="edit-item-id">
+        <input type="hidden" id="edit-item-filename">
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">Item Name</label>
+          <input type="text" id="edit-item-name" required class="editorial-input text-sm font-semibold">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">Category</label>
+            <select id="edit-item-category" class="editorial-input text-xs font-semibold">
+              <option value="Tops">Tops</option>
+              <option value="Bottoms">Bottoms</option>
+              <option value="Dresses">Dresses</option>
+              <option value="Outerwear">Outerwear</option>
+              <option value="Shoes">Shoes</option>
+              <option value="Accessories">Accessories</option>
+              <option value="Activewear">Activewear</option>
+              <option value="Formalwear">Formalwear</option>
+              <option value="Swimwear">Swimwear</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">Subcategory</label>
+            <select id="edit-item-subcategory" class="editorial-input text-xs font-semibold"></select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">Colors (comma
+              separated)</label>
+            <input type="text" id="edit-item-colors" class="editorial-input text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">Fit</label>
+            <select id="edit-item-fit" class="editorial-input text-xs">
+              <option value="Regular">Regular</option>
+              <option value="Slim">Slim</option>
+              <option value="Relaxed">Relaxed</option>
+              <option value="Oversized">Oversized</option>
+              <option value="Skinny">Skinny</option>
+              <option value="Straight">Straight</option>
+              <option value="Wide-leg">Wide-leg</option>
+              <option value="Cropped">Cropped</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">Material</label>
+            <input type="text" id="edit-item-material" class="editorial-input text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-[#6C6860] mb-1">Pattern</label>
+            <select id="edit-item-pattern" class="editorial-input text-xs">
+              <option value="Solid">Solid</option>
+              <option value="Striped">Striped</option>
+              <option value="Checked">Checked</option>
+              <option value="Plaid">Plaid</option>
+              <option value="Floral">Floral</option>
+              <option value="Graphic">Graphic</option>
+              <option value="Abstract">Abstract</option>
+              <option value="Textured">Textured</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 p-2.5 bg-[#FEF3C7]/40 border border-[#FDE68A] rounded-lg">
+          <input type="checkbox" id="edit-item-laundry" class="w-4 h-4 rounded text-[#BA512A]">
+          <label for="edit-item-laundry" class="text-xs font-medium text-[#181715]">In Laundry Basket</label>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-[#E8E5DD]">
+          <button type="button" id="cancel-edit-btn"
+            class="btn-atelier btn-atelier-secondary py-2 text-xs">Cancel</button>
+          <button type="submit" class="btn-atelier btn-atelier-accent py-2 text-xs">Save Changes</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Wardrobe JS Logic -->
   <script src="/static/js/wardrobe.js"></script>
+
+  <!-- Mobile Menu Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const mobileBtn = document.getElementById('mobile-menu-btn');
+      const mobileMenu = document.getElementById('mobile-menu');
+      if (mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener('click', () => {
+          mobileMenu.classList.toggle('hidden');
+        });
+        document.addEventListener('click', (e) => {
+          if (!mobileBtn.contains(e.target) && !mobileMenu.contains(e.target)) {
+            mobileMenu.classList.add('hidden');
+          }
+        });
+      }
+    });
+  </script>
 </body>
 
 </html>

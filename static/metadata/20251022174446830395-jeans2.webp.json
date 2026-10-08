@@ -2,8 +2,8 @@
   "id": "20251022174446830395-jeans2.webp",
   "filename": "20251022174446830395-jeans2.webp",
   "url": "/static/uploads/20251022174446830395-jeans2.webp",
-  "name": "Blue Baggy Jeans",
-  "category": "Pants",
+  "name": "Light Blue Wide-Leg Jeans",
+  "category": "Bottoms",
   "tags": [
     "Jean",
     "Green",
@@ -11,5 +11,21 @@
   ],
   "description": "A green jean (sporty)",
   "uploaded_at": "2025-10-22T17:44:47.077010",
-  "in_laundry": true
+  "in_laundry": false,
+  "subcategory": "Jeans",
+  "colors": [
+    "Light Blue"
+  ],
+  "pattern": "Solid",
+  "material": "Denim",
+  "fit": "Wide-leg",
+  "styles": [
+    "Streetwear",
+    "Casual"
+  ],
+  "seasons": [
+    "All Season"
+  ],
+  "formality": "Casual",
+  "confidence": 0.95
 }

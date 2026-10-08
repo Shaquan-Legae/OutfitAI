@@ -2,7 +2,7 @@
   "id": "20251022174608187433-brs.jpeg",
   "filename": "20251022174608187433-brs.jpeg",
   "url": "/static/uploads/20251022174608187433-brs.jpeg",
-  "name": "Navy Fitted Cap",
+  "name": "Navy Fitted Baseball Cap",
   "category": "Accessories",
   "tags": [
     "Crash Helmet",
@@ -11,5 +11,22 @@
   ],
   "description": "A red crash helmet (casual)",
   "uploaded_at": "2025-10-22T17:46:08.384745",
-  "in_laundry": false
+  "in_laundry": false,
+  "subcategory": "Cap",
+  "colors": [
+    "Navy"
+  ],
+  "pattern": "Solid",
+  "material": "Cotton",
+  "fit": "Regular",
+  "styles": [
+    "Streetwear",
+    "Casual"
+  ],
+  "seasons": [
+    "All Season"
+  ],
+  "formality": "Casual",
+  "confidence": 0.94,
+  "updated_at": "2026-10-08T03:04:09.233406"
 }

@@ -3,222 +3,913 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="img-src https://cdn.weatherapi.com data: 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;">
+    <meta http-equiv="Content-Security-Policy"
+        content="img-src https://cdn.weatherapi.com data: https: 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;">
 
-    <title>Suggestions - OutfitAI</title>
-    
+    <title>Suggestions & Stylist — OutfitAI</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        primary: '#4F46E5', 
-                        primaryHover: '#4338CA',
-                        weatherFrom: '#3B82F6',
-                        weatherTo: '#4F46E5',
-                    },
-                    animation: { 'bounce-slow': 'bounce 3s infinite', 'pop-in': 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' },
-                    keyframes: { popIn: { '0%': { transform: 'scale(0)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } } }
-                }
-            }
+    <style>
+        :root {
+            --bg-alabaster: #FAF9F6;
+            --surface-plate: #FFFFFF;
+            --border-stone: #E5E2DA;
+            --text-obsidian: #181715;
+            --text-muted: #706D65;
+            --terracotta: #BA512A;
+            --terracotta-hover: #9E4321;
+            --terracotta-tint: #FDF3EE;
         }
-    </script>
 
-    <style type="text/tailwindcss">
-        @layer components {
-            .btn { @apply inline-flex items-center justify-center px-6 py-3 rounded-xl text-base font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-sm; }
-            .btn-primary { @apply bg-primary text-white hover:bg-primaryHover hover:-translate-y-0.5 shadow-indigo-200 focus:ring-primary disabled:bg-slate-300 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none; }
-            .btn-secondary { @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-slate-200 disabled:opacity-50; }
-            
-            /* Weather */
-            .weather-card { @apply relative overflow-hidden rounded-2xl bg-gradient-to-br from-weatherFrom to-weatherTo text-white shadow-lg transition-all duration-300 p-6 z-20; }
-            .weather-card.loading { @apply from-slate-100 to-slate-200 text-slate-400 cursor-wait shadow-none; }
-            .weather-card.clickable { @apply cursor-pointer hover:-translate-y-1 hover:shadow-xl; }
-            #weather-extra-details { @apply bg-white border-x border-b border-slate-200 rounded-b-2xl shadow-md -mt-1 z-10 overflow-hidden max-h-0 opacity-0 transition-all duration-500 ease-in-out; }
-            #weather-extra-details.open { @apply max-h-[600px] opacity-100 py-6 px-6; }
-
-            /* Chat Widget */
-            .chat-widget { 
-                @apply fixed bottom-24 right-6 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col transition-all duration-300 transform origin-bottom-right opacity-0 scale-95 pointer-events-none z-50; 
-                height: 500px; 
-                max-height: 70vh;
-            }
-            .chat-widget.open { @apply opacity-100 scale-100 pointer-events-auto; }
-            .chat-messages { @apply flex-1 overflow-y-auto p-4 bg-slate-50 scroll-smooth; }
-            
-            /* Dynamic JS Classes */
-            .hour-item { @apply flex-none w-[70px] flex flex-col items-center justify-center py-3 bg-slate-50 rounded-xl border border-slate-100 snap-center; }
-            .outfit-item { @apply relative bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md group; }
-            .message { @apply mb-3 max-w-[85%] text-sm leading-relaxed rounded-2xl py-2.5 px-4 shadow-sm; }
-            .message.bot { @apply bg-white border border-slate-200 text-slate-800 rounded-bl-none self-start; }
-            .message.user { @apply bg-primary text-white rounded-br-none self-end ml-auto; }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-alabaster);
+            color: var(--text-obsidian);
         }
-        .hide-scroll::-webkit-scrollbar { display: none; }
+
+        .font-tabular {
+            font-feature-settings: "tnum" 1, "cv02" 1;
+        }
+
+        /* Buttons */
+        .btn-atelier {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.65rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-atelier-accent {
+            background-color: var(--terracotta);
+            color: #FFFFFF;
+            box-shadow: 0 1px 3px rgba(186, 81, 42, 0.2);
+        }
+        .btn-atelier-accent:hover:not(:disabled) {
+            background-color: var(--terracotta-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(186, 81, 42, 0.25);
+        }
+        .btn-atelier-accent:disabled {
+            background-color: #D8D4CA;
+            color: #99958C;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .btn-atelier-secondary {
+            background-color: #FFFFFF;
+            color: var(--text-obsidian);
+            border: 1px solid var(--border-stone);
+        }
+        .btn-atelier-secondary:hover {
+            background-color: #F8F6F2;
+            border-color: #D8D4CA;
+        }
+
+        /* Weather Barometer Card */
+        .weather-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 1.25rem;
+            background: linear-gradient(145deg, #1F1D1A 0%, #161513 100%);
+            color: #FAF9F6;
+            border: 1px solid rgba(229, 226, 218, 0.15);
+            box-shadow: 0 4px 20px -2px rgba(24, 23, 21, 0.12);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 1.5rem 1.75rem;
+            z-index: 20;
+        }
+        .weather-card.loading {
+            background: #F3F1EC;
+            color: #99958C;
+            cursor: wait;
+            border-color: #E5E2DA;
+            box-shadow: none;
+        }
+        .weather-card.error {
+            background: #782C1B;
+            color: #FFFFFF;
+        }
+        .weather-card.clickable {
+            cursor: pointer;
+        }
+        .weather-card.clickable:hover {
+            transform: translateY(-2px);
+            border-color: rgba(186, 81, 42, 0.4);
+            box-shadow: 0 10px 25px -4px rgba(24, 23, 21, 0.18);
+        }
+        .weather-card.active {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        #weather-extra-details {
+            background-color: #FFFFFF;
+            border-left: 1px solid #E5E2DA;
+            border-right: 1px solid #E5E2DA;
+            border-bottom: 1px solid #E5E2DA;
+            border-bottom-left-radius: 1.25rem;
+            border-bottom-right-radius: 1.25rem;
+            box-shadow: 0 8px 24px -4px rgba(24, 23, 21, 0.05);
+            margin-top: -1px;
+            z-index: 10;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #weather-extra-details.open {
+            max-height: 700px;
+            opacity: 1;
+            padding: 1.5rem 1.75rem;
+        }
+
+        .hour-item {
+            flex: none;
+            width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.65rem 0.4rem;
+            background-color: #F8F6F2;
+            border-radius: 0.75rem;
+            border: 1px solid #E8E5DC;
+            scroll-snap-align: center;
+        }
+        .hour-item .hour-time {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #706D65;
+            text-transform: uppercase;
+        }
+        .hour-item img {
+            width: 1.75rem;
+            height: 1.75rem;
+            margin: 0.2rem 0;
+        }
+        .hour-item .hour-temp {
+            font-size: 0.8125rem;
+            font-weight: 700;
+            color: #181715;
+            font-feature-settings: "tnum" 1;
+        }
+        .hour-item .hour-rain {
+            font-size: 0.6rem;
+            color: #BA512A;
+            font-weight: 600;
+            margin-top: 0.2rem;
+        }
+
+        /* Outfit Lookbook Items */
+        .outfit-item {
+            position: relative;
+            background-color: #FFFFFF;
+            border-radius: 1.25rem;
+            border: 1px solid #E5E2DA;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 1px 3px rgba(24, 23, 21, 0.03);
+            display: flex;
+            flex-direction: column;
+        }
+        .outfit-item:hover {
+            transform: translateY(-3px);
+            border-color: #D8D4CA;
+            box-shadow: 0 12px 28px -6px rgba(24, 23, 21, 0.08);
+        }
+        .outfit-item .image-box {
+            aspect-ratio: 4 / 4.75;
+            background-color: #EBE8E1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow: hidden;
+        }
+        .outfit-item img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .outfit-item:hover img {
+            transform: scale(1.04);
+        }
+        .outfit-item-info {
+            padding: 1rem;
+            background-color: #FFFFFF;
+            border-top: 1px solid #F0EDE5;
+            flex: 1;
+        }
+        .outfit-item-info h4 {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #181715;
+            line-height: 1.3;
+        }
+        .outfit-item-info p {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #706D65;
+            margin-top: 0.25rem;
+        }
+
+        /* Chat Widget */
+        .chat-widget {
+            position: fixed;
+            bottom: 5.5rem;
+            right: 1.5rem;
+            width: 420px;
+            max-width: calc(100vw - 2rem);
+            height: 580px;
+            max-height: 80vh;
+            background-color: #FAF9F6;
+            border-radius: 1.5rem;
+            border: 1px solid #E5E2DA;
+            box-shadow: 0 20px 48px -10px rgba(24, 23, 21, 0.18);
+            display: flex;
+            flex-direction: column;
+            transform-origin: bottom right;
+            transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            transform: scale(0.94) translateY(12px);
+            pointer-events: none;
+            z-index: 50;
+            overflow: hidden;
+        }
+        .chat-widget.open {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.25rem;
+            background-color: #FAF9F6;
+            scroll-behavior: smooth;
+        }
+
+        .chat-bubble {
+            margin-bottom: 0.875rem;
+            max-width: 85%;
+            font-size: 0.8125rem;
+            line-height: 1.55;
+            border-radius: 1.125rem;
+            padding: 0.75rem 1rem;
+            position: relative;
+            word-break: break-word;
+        }
+        .chat-bubble.user {
+            background-color: var(--terracotta);
+            color: #FFFFFF;
+            margin-left: auto;
+            border-bottom-right-radius: 0.25rem;
+            box-shadow: 0 2px 8px rgba(186, 81, 42, 0.2);
+        }
+        .chat-bubble.bot {
+            background-color: #FFFFFF;
+            color: var(--text-obsidian);
+            border: 1px solid #E5E2DA;
+            margin-right: auto;
+            border-bottom-left-radius: 0.25rem;
+            box-shadow: 0 1px 3px rgba(24, 23, 21, 0.04);
+        }
+
+        /* Voice Speaker Button */
+        .msg-voice-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--terracotta);
+            background-color: var(--terracotta-tint);
+            border: 1px solid #F6DACD;
+            padding: 0.2rem 0.5rem;
+            border-radius: 9999px;
+            margin-top: 0.5rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .msg-voice-btn:hover {
+            background-color: #FBEBE3;
+            transform: scale(1.02);
+        }
+        .msg-voice-btn.playing {
+            background-color: var(--terracotta);
+            color: #FFFFFF;
+            border-color: var(--terracotta);
+        }
+
+        /* Sound wave animation */
+        @keyframes soundWave {
+            0%, 100% { height: 4px; }
+            50% { height: 12px; }
+        }
+        .wave-bar {
+            width: 2px;
+            background-color: currentColor;
+            border-radius: 1px;
+            animation: soundWave 0.8s ease-in-out infinite;
+        }
+        .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+
+        /* Mic recording pulse */
+        @keyframes micPulse {
+            0% { box-shadow: 0 0 0 0 rgba(186, 81, 42, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(186, 81, 42, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(186, 81, 42, 0); }
+        }
+        .mic-recording {
+            animation: micPulse 1.4s infinite;
+            background-color: var(--terracotta) !important;
+            color: #FFFFFF !important;
+        }
+
+        /* Quick prompt pills */
+        .prompt-chip {
+            flex: none;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #706D65;
+            background-color: #FFFFFF;
+            border: 1px solid #E5E2DA;
+            padding: 0.3rem 0.65rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+        .prompt-chip:hover {
+            color: var(--terracotta);
+            border-color: var(--terracotta);
+            background-color: var(--terracotta-tint);
+        }
+
+        /* Saved Looks Slide Drawer */
+        .drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(24, 23, 21, 0.45);
+            backdrop-filter: blur(4px);
+            z-index: 60;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .drawer-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .saved-looks-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            max-width: 440px;
+            background-color: #FAF9F6;
+            box-shadow: -8px 0 32px rgba(24, 23, 21, 0.15);
+            z-index: 70;
+            transform: translateX(100%);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        .saved-looks-panel.open {
+            transform: translateX(0);
+        }
+
+        /* Chat Voice Settings Popdown */
+        .voice-settings-panel {
+            background-color: #1F1D1A;
+            border-bottom: 1px solid rgba(229, 226, 218, 0.15);
+            padding: 0.75rem 1rem;
+            color: #FAF9F6;
+            display: none;
+        }
+        .voice-settings-panel.open {
+            display: block;
+        }
+        .speed-pill {
+            padding: 0.2rem 0.55rem;
+            border-radius: 0.5rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            border: 1px solid rgba(229, 226, 218, 0.2);
+            color: #FAF9F6;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .speed-pill.active {
+            background-color: var(--terracotta);
+            border-color: var(--terracotta);
+            color: #FFFFFF;
+        }
+        .voice-persona-chip {
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.5rem;
+            font-size: 0.6875rem;
+            font-weight: 500;
+            border: 1px solid rgba(229, 226, 218, 0.2);
+            color: #D8D4CA;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: left;
+        }
+        .voice-persona-chip.active {
+            background-color: var(--terracotta);
+            border-color: var(--terracotta);
+            color: #FFFFFF;
+            font-weight: 600;
+        }
+
+        /* Active Look Chat Pill */
+        .active-look-pill {
+            background-color: #F8F6F2;
+            border-bottom: 1px solid #E5E2DA;
+            padding: 0.6rem 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased">
 
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center gap-8">
-                    <a href="/" class="flex-shrink-0 flex items-center gap-2">
-                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold"><i class="fa-solid fa-shirt"></i></div>
-                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">OutfitAI</span>
+<body class="bg-[#FAF9F6] text-[#181715] antialiased selection:bg-[#BA512A] selection:text-white">
+
+    <!-- Global Navigation -->
+    <nav class="bg-[#FAF9F6]/95 backdrop-blur-md border-b border-[#E5E2DA] sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="relative flex justify-between h-16 items-center">
+
+                <!-- Logo & Brand -->
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center gap-2.5 group">
+                        <div class="w-8 h-8 rounded-lg bg-[#181715] text-[#FAF9F6] flex items-center justify-center font-bold text-sm transition-transform group-hover:scale-105">
+                            <i class="fa-solid fa-shirt text-xs text-[#FAF9F6]"></i>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-lg font-bold tracking-tight text-[#181715]">OutfitAI</span>
+                        </div>
                     </a>
-                    <div class="hidden sm:flex sm:space-x-4">
-                        <a href="/" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">Home</a>
-                        <a href="/wardrobe" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">My Wardrobe</a>
-                        <a href="/recommendations" class="text-primary bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium" aria-current="page">Suggestions</a>
-                    </div>
                 </div>
+
+                <!-- Centered Desktop Links -->
+                <div class="hidden sm:flex sm:items-center sm:space-x-1 sm:absolute sm:left-1/2 sm:-translate-x-1/2">
+                    <a href="/" class="px-3.5 py-1.5 text-xs font-medium text-[#706D65] hover:text-[#181715] hover:bg-[#F3F1EC] rounded-lg transition-colors">Dashboard</a>
+                    <a href="/wardrobe" class="px-3.5 py-1.5 text-xs font-medium text-[#706D65] hover:text-[#181715] hover:bg-[#F3F1EC] rounded-lg transition-colors">My Wardrobe</a>
+                    <a href="/recommendations" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-[#181715] text-[#FAF9F6]" aria-current="page">Suggestions</a>
+                </div>
+
+                <!-- User & Actions -->
                 <div class="flex items-center gap-4">
-                    <span class="text-sm text-slate-600 hidden md:block">Welcome, <span class="font-semibold text-slate-900">{{ user.name }}</span></span>
-                    <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition-colors"><i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Logout</a>
+                    <span class="text-xs text-[#706D65] hidden md:block">
+                        Signed in as <span class="font-semibold text-[#181715]">{{ user.name }}</span>
+                    </span>
+
+                    <a href="/logout" class="text-xs font-medium text-[#706D65] hover:text-[#BA512A] px-2.5 py-1.5 rounded-lg border border-[#E5E2DA] hover:border-[#BA512A]/40 transition-colors" title="Logout">
+                        <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> <span class="hidden sm:inline">Logout</span>
+                    </a>
+
+                    <button id="mobile-menu-btn" class="sm:hidden p-2 rounded-lg text-[#706D65] hover:bg-[#F3F1EC] focus:outline-none" aria-label="Toggle navigation menu">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
                 </div>
             </div>
+        </div>
+
+        <!-- Mobile Drawer -->
+        <div id="mobile-menu" class="hidden sm:hidden bg-[#FAF9F6] border-b border-[#E5E2DA] px-4 py-3 space-y-1">
+            <a href="/" class="block px-3 py-2 rounded-lg text-sm font-medium text-[#706D65] hover:bg-[#F3F1EC]">Dashboard</a>
+            <a href="/wardrobe" class="block px-3 py-2 rounded-lg text-sm font-medium text-[#706D65] hover:bg-[#F3F1EC]">My Wardrobe</a>
+            <a href="/recommendations" class="block px-3 py-2 rounded-lg text-sm font-semibold bg-[#181715] text-[#FAF9F6]">Suggestions & Stylist Chat</a>
         </div>
     </nav>
 
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-        <div class="text-center mb-10">
-            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight">Get Your Outfit Suggestion</h1>
-            <p class="text-lg text-slate-500 max-w-2xl mx-auto">Check your local weather, then let AI curate the perfect look from your wardrobe.</p>
+    <!-- Main Container -->
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <!-- Page Header -->
+        <div class="text-center mb-8">
+            <span class="text-xs font-semibold tracking-wider uppercase text-[#BA512A] block mb-1">Atmospheric Wardrobe Curation</span>
+            <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-[#181715]">
+                Curated Outfit Suggestions
+            </h1>
+            <p class="text-sm text-[#706D65] max-w-xl mx-auto mt-1.5">
+                Real-time weather telemetry coordinated with your personal wardrobe archive.
+            </p>
         </div>
 
-        <div class="max-w-3xl mx-auto mb-10">
+        <!-- Weather Barometer Widget -->
+        <div class="max-w-3xl mx-auto mb-8">
             <div id="weather-widget" class="weather-card loading group">
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-6">
-                    <div class="weather-main flex items-center gap-6">
-                        <div class="weather-icon relative">
-                             <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center shadow-inner backdrop-blur-sm">
-                                <i class="fa-solid fa-cloud text-2xl opacity-50"></i>
-                            </div>
+                    <div class="flex items-center gap-4 text-center sm:text-left">
+                        <div class="weather-icon w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center p-2">
+                            <i class="fa-solid fa-spinner fa-spin text-[#BA512A] text-xl"></i>
                         </div>
-                        <div class="weather-details text-center sm:text-left">
-                            <span class="weather-temp block text-4xl sm:text-5xl font-bold">--°C</span>
-                            <span class="weather-desc block text-base font-medium opacity-90 mt-1">Loading weather...</span>
+                        <div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="weather-temp text-4xl font-extrabold font-tabular">--°C</span>
+                                <span class="weather-desc text-sm font-medium opacity-90 block capitalize">Loading weather...</span>
+                            </div>
+                            <span class="text-[10px] text-[#BA512A] font-semibold tracking-wide uppercase mt-0.5 inline-block">Atmospheric Sensor</span>
                         </div>
                     </div>
                     <div class="weather-extra text-center sm:text-right">
-                        <span class="weather-city block text-xl font-semibold">Detecting...</span>
-                        <span class="weather-feels-like block text-sm opacity-90 mt-1">Feels like: --°C</span>
-                        <div class="mt-2 text-xs font-bold uppercase tracking-widest opacity-75 group-hover:translate-x-1 transition-transform">
-                            Click details <i class="fa-solid fa-chevron-down ml-1"></i>
+                        <span class="weather-city block text-xl font-bold tracking-tight">Detecting city...</span>
+                        <div class="inline-flex items-center gap-1.5 bg-white/10 rounded-full px-2.5 py-1 mt-1 text-xs font-medium">
+                            <i class="fa-solid fa-temperature-half text-[10px] text-[#BA512A]"></i>
+                            <span class="weather-feels-like font-tabular">Feels like: --°C</span>
+                        </div>
+                        <div class="mt-2 text-[10px] uppercase font-bold tracking-wider opacity-75 group-hover:text-[#BA512A] transition-colors">
+                            Click Details <i class="fa-solid fa-chevron-down text-[9px] ml-1"></i>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Expandable Forecast Details -->
             <div id="weather-extra-details">
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                        <div class="text-indigo-500"><i class="fa-solid fa-wind text-lg"></i></div>
-                        <div><span class="text-xs font-bold text-slate-400 uppercase block">Wind</span><span class="font-semibold text-slate-800 block" id="data-wind">--</span></div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5 pb-5 border-b border-[#E5E2DA]">
+                    <div class="p-2.5 rounded-xl bg-[#F8F6F2] border border-[#E8E5DC]">
+                        <span class="text-[10px] font-bold text-[#706D65] uppercase block">Wind</span>
+                        <span class="font-bold text-[#181715] text-sm font-tabular mt-0.5" id="data-wind">--</span>
                     </div>
-                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                        <div class="text-blue-500"><i class="fa-solid fa-droplet text-lg"></i></div>
-                        <div><span class="text-xs font-bold text-slate-400 uppercase block">Humidity</span><span class="font-semibold text-slate-800 block" id="data-humidity">--</span></div>
+                    <div class="p-2.5 rounded-xl bg-[#F8F6F2] border border-[#E8E5DC]">
+                        <span class="text-[10px] font-bold text-[#706D65] uppercase block">Humidity</span>
+                        <span class="font-bold text-[#181715] text-sm font-tabular mt-0.5" id="data-humidity">--</span>
                     </div>
-                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                        <div class="text-teal-500"><i class="fa-solid fa-eye text-lg"></i></div>
-                        <div><span class="text-xs font-bold text-slate-400 uppercase block">Visibility</span><span class="font-semibold text-slate-800 block" id="data-vis">--</span></div>
+                    <div class="p-2.5 rounded-xl bg-[#F8F6F2] border border-[#E8E5DC]">
+                        <span class="text-[10px] font-bold text-[#706D65] uppercase block">Visibility</span>
+                        <span class="font-bold text-[#181715] text-sm font-tabular mt-0.5" id="data-vis">--</span>
                     </div>
-                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                        <div class="text-amber-500"><i class="fa-solid fa-sun text-lg"></i></div>
-                        <div><span class="text-xs font-bold text-slate-400 uppercase block">UV Index</span><span class="font-semibold text-slate-800 block" id="data-uv">--</span></div>
+                    <div class="p-2.5 rounded-xl bg-[#F8F6F2] border border-[#E8E5DC]">
+                        <span class="text-[10px] font-bold text-[#706D65] uppercase block">UV Index</span>
+                        <span class="font-bold text-[#181715] text-sm font-tabular mt-0.5" id="data-uv">--</span>
                     </div>
                 </div>
-                <div class="mb-6">
-                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Hourly Forecast</h4>
+
+                <div class="mb-4">
+                    <h4 class="text-[11px] font-bold text-[#181715] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-regular fa-clock text-[#706D65]"></i> Hourly Timeline
+                    </h4>
                     <div id="hourly-forecast-container" class="flex gap-2 overflow-x-auto hide-scroll pb-2 snap-x">
-                        <span class="text-slate-400 text-sm italic w-full text-center">Loading...</span>
+                        <span class="text-[#706D65] text-xs italic w-full text-center py-2">Loading hourly conditions...</span>
                     </div>
                 </div>
-                <div class="flex gap-8 text-sm font-medium text-slate-600">
-                    <div class="flex items-center gap-2"><i class="fa-solid fa-sun text-amber-400"></i> Sunrise: <span id="sunrise-time">--:--</span></div>
-                    <div class="flex items-center gap-2"><i class="fa-solid fa-moon text-indigo-400"></i> Sunset: <span id="sunset-time">--:--</span></div>
+
+                <div class="flex gap-8 text-xs font-medium text-[#706D65] pt-2 border-t border-[#E5E2DA]">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-sun text-[#D49B45]"></i> Sunrise: <span id="sunrise-time" class="font-tabular font-bold text-[#181715]">--:--</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-moon text-[#BA512A]"></i> Sunset: <span id="sunset-time" class="font-tabular font-bold text-[#181715]">--:--</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="flex justify-center mb-12">
-            <button id="get-suggestion-btn" class="btn btn-primary w-full sm:w-auto min-w-[250px] text-lg shadow-xl shadow-indigo-100" disabled>
-                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate My Outfit
+        <!-- Action CTA & Lookbook Access -->
+        <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
+            <button id="get-suggestion-btn" class="btn-atelier btn-atelier-accent px-8 py-3.5 text-sm sm:text-base shadow-lg shadow-[#BA512A]/15" disabled>
+                <i class="fa-solid fa-wand-magic-sparkles mr-2 text-sm"></i> Curate Outfit from Wardrobe
+            </button>
+            <button id="open-saved-looks-btn" type="button" class="btn-atelier btn-atelier-secondary px-5 py-3.5 text-xs font-semibold shadow-sm hover:border-[#BA512A]/40 transition-all">
+                <i class="fa-solid fa-bookmark text-[#BA512A] mr-2"></i> Saved Looks (<span id="saved-looks-counter" class="font-tabular">0</span>)
             </button>
         </div>
 
+        <!-- Suggestion Output -->
         <div id="suggestion-output" class="max-w-4xl mx-auto hidden flex-col">
-            <div class="loading-message hidden text-center py-12">
-                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-primary mb-4"></i>
-                <p class="text-slate-500 font-medium">Analyzing wardrobe & weather...</p>
+            <div class="loading-message hidden text-center py-16">
+                <div class="w-12 h-12 rounded-full border-2 border-[#E5E2DA] border-t-[#BA512A] animate-spin mx-auto mb-4"></div>
+                <p class="text-sm font-semibold text-[#181715]">Analyzing wardrobe synergy & hourly weather trajectory...</p>
+                <p class="text-xs text-[#706D65] mt-1">Balancing fabric warmth, rain risk, and temperature swings to prevent over/underdressing.</p>
             </div>
-            
+
+            <!-- Error State When No Outfit Can Be Assembled -->
+            <div id="suggestion-error-state" class="hidden w-full bg-white border border-[#E5E2DA] rounded-3xl p-8 sm:p-12 text-center shadow-sm relative overflow-hidden">
+                <div class="w-16 h-16 rounded-2xl bg-[#FDF3EE] border border-[#F6DACD] text-[#BA512A] flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+                    <i class="fa-solid fa-vest text-xl" id="error-state-icon"></i>
+                </div>
+                <span class="text-[10px] uppercase font-bold tracking-widest text-[#BA512A] block mb-1">Wardrobe Curation Notice</span>
+                <h3 id="error-state-title" class="text-xl sm:text-2xl font-bold text-[#181715] mb-2">No Outfit Could Be Assembled</h3>
+                <p id="error-state-message" class="text-xs sm:text-sm text-[#706D65] max-w-lg mx-auto mb-6 leading-relaxed">
+                    We evaluated your wardrobe against today's atmospheric forecast, but could not compose a full look.
+                </p>
+
+                <!-- Contextual Metrics Pills -->
+                <div id="error-state-metrics" class="flex flex-wrap items-center justify-center gap-2.5 mb-8">
+                    <!-- Populated dynamically: e.g. "Laundry: 4 pieces", "Available: 0 pieces" -->
+                </div>
+
+                <!-- Actionable Options -->
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    <a href="/wardrobe" class="btn-atelier btn-atelier-accent text-xs py-2.5 px-4 shadow-sm" id="error-action-wardrobe">
+                        <i class="fa-solid fa-shirt mr-1.5"></i> Open Wardrobe
+                    </a>
+                    <button type="button" id="error-action-clear-excludes" class="btn-atelier btn-atelier-secondary text-xs py-2.5 px-4">
+                        <i class="fa-solid fa-rotate mr-1.5"></i> Include Past Looks & Retry
+                    </button>
+                    <button type="button" id="error-action-ask-stylist" class="btn-atelier btn-atelier-secondary text-xs py-2.5 px-4 text-[#BA512A] border-[#F6DACD] hover:bg-[#FDF3EE]">
+                        <i class="fa-solid fa-comments mr-1.5"></i> Ask Stylist for Advice
+                    </button>
+                </div>
+            </div>
+
+            <!-- Successful Look Content -->
             <div id="suggestion-content" class="hidden w-full relative">
-                <div class="flex justify-between items-center mb-6">
-                     <h2 id="suggestion-greeting" class="text-2xl font-bold text-slate-900"></h2>
-                     <button id="save-outfit-btn" class="btn btn-secondary text-sm px-4 py-2 hover:text-red-500 transition-colors">
-                        <i class="fa-regular fa-heart mr-2"></i> Save Look
-                     </button>
-                </div>
                 
-                <div id="outfit-display-area" class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8"></div>
-                
-                <div class="grid md:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                        <h3 class="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2"><i class="fa-solid fa-check-circle text-green-500"></i> Why it works</h3>
-                        <p id="why-it-works-text" class="text-slate-600 leading-relaxed text-sm"></p>
+                <!-- Look Header -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-4 border-b border-[#E5E2DA]">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold tracking-widest text-[#BA512A] block">Curated Capsule</span>
+                        <h2 id="suggestion-greeting" class="text-xl sm:text-2xl font-bold text-[#181715]"></h2>
                     </div>
-                    <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
-                        <h3 class="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2"><i class="fa-solid fa-lightbulb text-indigo-600"></i> Stylist Note</h3>
-                        <p id="notes-text" class="text-indigo-800 leading-relaxed text-sm"></p>
+                    <div class="flex items-center gap-2">
+                        <button id="discuss-outfit-btn" type="button" class="btn-atelier btn-atelier-accent text-xs px-3.5 py-2">
+                            <i class="fa-solid fa-comment-dots mr-1.5 text-xs"></i> Discuss with Stylist
+                        </button>
+                        <button id="save-outfit-btn" type="button" class="btn-atelier btn-atelier-secondary text-xs px-3.5 py-2">
+                            <i class="fa-regular fa-heart mr-1.5 text-xs"></i> Save Look
+                        </button>
                     </div>
                 </div>
-                <div class="text-center">
-                    <button id="get-another-suggestion-btn" class="btn btn-secondary"><i class="fa-solid fa-rotate mr-2"></i> Suggest Another Outfit</button>
+
+                <!-- Hourly Weather Trajectory Banner -->
+                <div id="weather-trajectory-banner" class="hidden bg-[#F8F6F2] border border-[#E5E2DA] rounded-xl px-4 py-2.5 mb-6 flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-lg bg-[#FDF3EE] text-[#BA512A] border border-[#F6DACD] flex items-center justify-center flex-shrink-0 text-xs">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div class="text-xs">
+                        <span class="font-bold text-[#181715] block">Hourly Forecast Adaptation</span>
+                        <span id="weather-trajectory-text" class="text-[#706D65] block mt-0.5"></span>
+                    </div>
+                </div>
+
+                <!-- Lookbook Items Grid -->
+                <div id="outfit-display-area" class="grid grid-cols-2 md:grid-cols-3 gap-5 mb-8"></div>
+
+                <!-- Editorial Synthesis -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+                    <div class="bg-white p-5 rounded-2xl border border-[#E5E2DA] shadow-sm">
+                        <div class="flex items-center gap-2 mb-2 text-[#BA512A]">
+                            <i class="fa-solid fa-check text-xs"></i>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-[#181715]">Why This Pairing Works</h3>
+                        </div>
+                        <p id="why-it-works-text" class="text-xs text-[#706D65] leading-relaxed"></p>
+                    </div>
+
+                    <div class="bg-[#FDF3EE] p-5 rounded-2xl border border-[#F6DACD]">
+                        <div class="flex items-center gap-2 mb-2 text-[#BA512A]">
+                            <i class="fa-solid fa-lightbulb text-xs"></i>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-[#BA512A]">Stylist Perspective</h3>
+                        </div>
+                        <p id="notes-text" class="text-xs text-[#706D65] leading-relaxed"></p>
+                    </div>
+                </div>
+
+                <div class="text-center pt-2">
+                    <button id="get-another-suggestion-btn" class="btn-atelier btn-atelier-secondary px-6 py-2.5 text-xs">
+                        <i class="fa-solid fa-rotate mr-2 text-[10px]"></i> Curate Alternative Look
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="saved-outfits-container" class="fixed bottom-6 left-6 z-40 flex flex-col-reverse gap-3 items-start">
-        </div>
+    </main>
 
-    <button id="fab-chat" class="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-xl shadow-indigo-200 flex items-center justify-center text-2xl hover:bg-primaryHover hover:scale-105 transition-all z-50 focus:outline-none focus:ring-4 focus:ring-indigo-100 animate-bounce-slow" title="Open Chat">
-        <i class="fa-solid fa-comment-dots"></i>
+    <!-- Saved Outfits Dock (Bottom Left) -->
+    <div id="saved-outfits-container" class="fixed bottom-6 left-6 z-40 flex flex-col-reverse gap-3 items-start"></div>
+
+    <!-- Floating Chat Stylist Trigger Button (FAB) -->
+    <button id="fab-chat"
+        class="fixed bottom-6 right-6 w-14 h-14 bg-[#BA512A] text-white rounded-full shadow-lg shadow-[#BA512A]/25 flex items-center justify-center text-xl hover:bg-[#9E4321] hover:scale-105 active:scale-95 transition-all z-50 focus:outline-none focus:ring-4 focus:ring-[#BA512A]/20"
+        title="Open OutfitAI Stylist (Voice Enabled)"
+        aria-label="Open AI Fashion Stylist Chat">
+        <i class="fa-solid fa-comment-dots text-lg"></i>
     </button>
 
-    <div class="chat-widget" id="chat-widget">
-        <div class="bg-primary px-5 py-3 flex justify-between items-center text-white shadow-sm flex-shrink-0">
+    <!-- Upgraded Stylist Chat Widget Drawer -->
+    <div class="chat-widget" id="chat-widget" role="dialog" aria-label="OutfitAI Fashion Stylist Chat">
+        
+        <!-- Chat Header -->
+        <div class="bg-[#181715] px-4 py-3.5 flex justify-between items-center text-white flex-shrink-0 border-b border-black">
             <div class="flex items-center gap-2.5">
-                <div class="bg-white/20 p-1.5 rounded-lg"><i class="fa-solid fa-robot text-sm"></i></div>
-                <div><span class="block text-sm font-bold">OutfitAI Assistant</span><span class="block text-[10px] text-indigo-200 font-medium flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-400 rounded-full"></span> Online</span></div>
+                <div class="w-8 h-8 rounded-lg bg-[#FAF9F6]/10 text-[#FAF9F6] flex items-center justify-center font-bold text-xs">
+                    <i class="fa-solid fa-shirt text-xs text-[#FAF9F6]"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-bold text-[#FAF9F6]">OutfitAI Stylist</span>
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                    </div>
+                    <span class="text-[10px] text-[#99958C] font-medium block">Gemini Voice · Wardrobe Grounded</span>
+                </div>
             </div>
-            <button id="chat-close-btn" class="hover:bg-white/20 rounded-full w-7 h-7 flex items-center justify-center transition-colors text-sm"><i class="fa-solid fa-chevron-down"></i></button>
+
+            <!-- Toolbar in Header -->
+            <div class="flex items-center gap-1.5">
+                <!-- Voice Settings Popdown Toggle -->
+                <button type="button" id="chat-voice-settings-btn" class="p-1.5 rounded-lg text-xs font-medium text-[#FAF9F6]/75 hover:text-white hover:bg-white/10 transition-colors" title="Voice Persona & Pace Settings" aria-label="Voice settings">
+                    <i class="fa-solid fa-sliders text-xs"></i>
+                </button>
+                <!-- Auto-Voice Toggle -->
+                <button type="button" id="chat-voice-toggle" class="p-1.5 rounded-lg text-xs font-medium text-[#FAF9F6]/75 hover:text-white hover:bg-white/10 transition-colors" title="Toggle Auto-Speak Voice" aria-label="Toggle voice output">
+                    <i class="fa-solid fa-volume-xmark text-xs" id="voice-toggle-icon"></i>
+                </button>
+                <!-- Clear History -->
+                <button type="button" id="chat-clear-btn" class="p-1.5 rounded-lg text-xs font-medium text-[#FAF9F6]/75 hover:text-white hover:bg-white/10 transition-colors" title="Clear Chat History" aria-label="Clear chat history">
+                    <i class="fa-regular fa-trash-can text-xs"></i>
+                </button>
+                <!-- Close Button -->
+                <button type="button" id="chat-close-btn" class="p-1.5 rounded-lg text-xs font-medium text-[#FAF9F6]/75 hover:text-white hover:bg-white/10 transition-colors" aria-label="Close stylist chat">
+                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                </button>
+            </div>
         </div>
 
-        <div class="chat-messages" id="chat-messages">
-            <div class="message bot">Hi {{ user.name }}! I'm your style assistant. Ask me about outfit advice or upload a photo! 📸</div>
+        <!-- Voice Persona & Pace Settings Panel -->
+        <div id="chat-voice-panel" class="voice-settings-panel">
+            <div class="mb-2 flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-[#BA512A]">Voice Persona</span>
+                <span class="text-[9px] text-[#99958C]">Gemini Neural Voices</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 mb-2.5">
+                <button type="button" class="voice-persona-chip active" data-voice="Kore">
+                    <span class="font-bold block text-xs">Kore</span>
+                    <span class="text-[9px] opacity-75 block">Chic & Natural · Female</span>
+                </button>
+                <button type="button" class="voice-persona-chip" data-voice="Aoede">
+                    <span class="font-bold block text-xs">Aoede</span>
+                    <span class="text-[9px] opacity-75 block">Warm & Breezy · Female</span>
+                </button>
+                <button type="button" class="voice-persona-chip" data-voice="Puck">
+                    <span class="font-bold block text-xs">Puck</span>
+                    <span class="text-[9px] opacity-75 block">Upbeat & Clear · Male</span>
+                </button>
+                <button type="button" class="voice-persona-chip" data-voice="Charon">
+                    <span class="font-bold block text-xs">Charon</span>
+                    <span class="text-[9px] opacity-75 block">Deep & Calm · Male</span>
+                </button>
+            </div>
+            
+            <div class="pt-2 border-t border-white/10 flex items-center justify-between">
+                <span class="text-[10px] text-[#D8D4CA] font-medium">Speech Pace</span>
+                <div class="flex items-center gap-1" id="voice-speed-controls">
+                    <button type="button" class="speed-pill" data-speed="0.8">0.8x</button>
+                    <button type="button" class="speed-pill active" data-speed="1.0">1.0x</button>
+                    <button type="button" class="speed-pill" data-speed="1.25">1.25x</button>
+                    <button type="button" class="speed-pill" data-speed="1.5">1.5x</button>
+                </div>
+            </div>
         </div>
 
-        <div class="p-3 bg-white border-t border-slate-200 flex-shrink-0">
-            <div id="chat-attachment-preview" class="hidden mb-2 mx-1 relative inline-block">
-                <img id="preview-image" src="#" alt="Preview" class="h-16 w-auto rounded-lg border border-slate-200 shadow-sm">
-                <button id="remove-attachment-btn" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center shadow-sm hover:bg-red-600 transition-colors border-2 border-white"><i class="fa-solid fa-xmark"></i></button>
+        <!-- Active Outfit Context Banner (Grounded in on-screen outfit) -->
+        <div id="chat-active-outfit-banner" class="hidden active-look-pill">
+            <div class="flex items-center justify-between cursor-pointer" id="toggle-active-look-summary">
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <span class="w-2 h-2 rounded-full bg-[#BA512A] animate-ping flex-shrink-0"></span>
+                    <span class="text-[11px] font-bold text-[#181715] truncate" id="active-look-title">Current Look on Screen</span>
+                </div>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span class="text-[9px] font-semibold text-[#BA512A] bg-[#FDF3EE] px-1.5 py-0.5 rounded border border-[#F6DACD]">Stylist Context</span>
+                    <i class="fa-solid fa-chevron-down text-[9px] text-[#706D65] transition-transform" id="active-look-chevron"></i>
+                </div>
             </div>
-            <form id="chat-form" class="flex items-end gap-2">
+            <!-- Expanded preview details & quick context chips -->
+            <div id="active-look-details" class="hidden mt-2 pt-2 border-t border-[#E5E2DA]">
+                <div id="active-look-chips" class="flex items-center gap-1.5 overflow-x-auto hide-scroll pb-1"></div>
+                <div class="mt-2 flex flex-wrap gap-1.5" id="active-look-quick-questions">
+                    <button type="button" class="prompt-chip text-[10px]" data-prompt="What jacket goes with this current look?">Jacket layer?</button>
+                    <button type="button" class="prompt-chip text-[10px]" data-prompt="Can I switch the shoes in this outfit?">Shoe swap?</button>
+                    <button type="button" class="prompt-chip text-[10px]" data-prompt="Is this outfit warm enough if temperature drops later?">Weather check?</button>
+                    <button type="button" class="prompt-chip text-[10px]" data-prompt="Save this outfit to my lookbook">Save this look</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Messages Area -->
+        <div class="chat-messages hide-scroll" id="chat-messages" tabindex="0">
+            <!-- Messages injected dynamically from history & user turns -->
+        </div>
+
+        <!-- Quick Wardrobe Prompts Bar -->
+        <div class="px-3 py-2 bg-[#F3F1EC] border-t border-[#E5E2DA] flex items-center gap-2 overflow-x-auto hide-scroll flex-shrink-0" id="chat-quick-prompts">
+            <button type="button" class="prompt-chip" data-prompt="What can I style with my jeans?">Pair my jeans</button>
+            <button type="button" class="prompt-chip" data-prompt="What shoes do I currently have?">Check shoes</button>
+            <button type="button" class="prompt-chip" data-prompt="Suggest a smart-casual streetwear look from my closet.">Smart casual look</button>
+            <button type="button" class="prompt-chip" data-prompt="Are any of my pieces currently in laundry?">Laundry check</button>
+        </div>
+
+        <!-- Input & Controls Footer -->
+        <div class="p-3 bg-white border-t border-[#E5E2DA] flex-shrink-0">
+            
+            <!-- Attachment Preview -->
+            <div id="chat-attachment-preview" class="hidden mb-2 relative inline-block">
+                <img id="preview-image" src="#" alt="Preview" class="h-14 w-auto rounded-lg border border-[#E5E2DA] shadow-sm object-cover">
+                <button id="remove-attachment-btn" type="button" class="absolute -top-1.5 -right-1.5 bg-[#BA512A] text-white rounded-full w-4 h-4 text-[9px] flex items-center justify-center shadow-sm hover:bg-[#9E4321]" aria-label="Remove image">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Speech Recording Indicator -->
+            <div id="mic-recording-indicator" class="hidden mb-2 text-xs font-semibold text-[#BA512A] flex items-center gap-2 px-1">
+                <span class="w-2 h-2 rounded-full bg-[#BA512A] animate-ping"></span>
+                <span>Listening to your voice... Speak now</span>
+                <button type="button" id="mic-cancel-btn" class="text-[10px] text-[#706D65] hover:text-[#181715] ml-auto underline">Cancel</button>
+            </div>
+
+            <!-- Form -->
+            <form id="chat-form" class="flex items-center gap-2">
                 <input type="file" id="chat-file-input" accept="image/*" class="hidden">
-                <button type="button" id="chat-attachment-btn" class="p-2.5 text-slate-400 hover:text-primary hover:bg-indigo-50 rounded-full transition-all"><i class="fa-solid fa-paperclip text-lg"></i></button>
-                <div class="flex-1 relative"><input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" class="w-full bg-slate-100 border-0 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-white transition-all placeholder-slate-400"></div>
-                <button type="submit" id="chat-send-btn" class="p-2.5 bg-primary text-white rounded-xl hover:bg-primaryHover transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 duration-100"><i class="fa-solid fa-paper-plane text-sm"></i></button>
+                
+                <!-- Attachment Button -->
+                <button type="button" id="chat-attachment-btn" class="p-2 text-[#706D65] hover:text-[#BA512A] hover:bg-[#FDF3EE] rounded-xl transition-colors" title="Attach clothing photo" aria-label="Attach photo">
+                    <i class="fa-solid fa-paperclip text-sm"></i>
+                </button>
+
+                <!-- Voice Input Mic Button -->
+                <button type="button" id="chat-mic-btn" class="p-2 text-[#706D65] hover:text-[#BA512A] hover:bg-[#FDF3EE] rounded-xl transition-colors" title="Voice Input (Speak to Stylist)" aria-label="Voice input">
+                    <i class="fa-solid fa-microphone text-sm"></i>
+                </button>
+
+                <!-- Text Input -->
+                <div class="flex-1 relative">
+                    <input type="text" id="chat-input" placeholder="Ask your stylist anything..." autocomplete="off"
+                        class="w-full bg-[#FAF9F6] border border-[#E5E2DA] rounded-xl px-3.5 py-2 text-xs text-[#181715] placeholder-[#99958C] focus:bg-white focus:outline-none focus:border-[#BA512A] focus:ring-2 focus:ring-[#BA512A]/15 transition-all">
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="chat-send-btn" class="p-2 bg-[#BA512A] text-white rounded-xl hover:bg-[#9E4321] transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Send message">
+                    <i class="fa-solid fa-arrow-up text-xs"></i>
+                </button>
             </form>
         </div>
     </div>
 
+    <!-- Saved Looks Slide-Over Drawer -->
+    <div id="drawer-overlay" class="drawer-overlay"></div>
+    <div id="saved-looks-drawer" class="saved-looks-panel" role="dialog" aria-label="Saved Outfits Lookbook">
+        <div class="p-4 sm:p-5 bg-white border-b border-[#E5E2DA] flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-[#FDF3EE] text-[#BA512A] border border-[#F6DACD] flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid fa-bookmark"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-[#181715]">Saved Lookbook</h3>
+                    <p class="text-[10px] text-[#706D65]">Outfits saved from your recommendations</p>
+                </div>
+            </div>
+            <button id="close-saved-looks-btn" type="button" class="p-2 rounded-lg text-[#706D65] hover:text-[#181715] hover:bg-[#F3F1EC] transition-colors" aria-label="Close lookbook">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Scrollable list of saved outfits -->
+        <div id="saved-looks-list" class="flex-1 overflow-y-auto p-4 space-y-3.5 hide-scroll">
+            <!-- Dynamically populated from /api/outfits/saved -->
+            <div id="saved-looks-empty" class="text-center py-16 text-[#706D65]">
+                <div class="w-12 h-12 rounded-2xl bg-[#F3F1EC] text-[#BA512A] flex items-center justify-center mx-auto mb-3">
+                    <i class="fa-regular fa-bookmark text-lg"></i>
+                </div>
+                <p class="text-xs font-bold text-[#181715]">No Saved Outfits</p>
+                <p class="text-[11px] text-[#706D65] mt-1 max-w-xs mx-auto">Click "Save Look" on any outfit recommendation to archive it for later.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations & Chat Script -->
     <script src="/static/js/recommendations.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileBtn && mobileMenu) {
+                mobileBtn.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
 </body>
 </html>

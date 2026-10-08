@@ -1,160 +1,254 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login / Register - OutfitAI</title>
-    
+    <title>Sign In — OutfitAI</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        primary: '#4F46E5', // Indigo 600
-                        primaryHover: '#4338CA', // Indigo 700
-                        secondary: '#64748B', // Slate 500
-                    }
-                }
-            }
+    <style>
+        :root {
+            --bg-alabaster: #FAF9F6;
+            --surface-plate: #FFFFFF;
+            --border-stone: #E5E2DA;
+            --text-obsidian: #181715;
+            --text-muted: #706D65;
+            --terracotta: #BA512A;
+            --terracotta-hover: #9E4321;
         }
-    </script>
 
-    <style type="text/tailwindcss">
-        @layer components {
-            /* Input Fields */
-            .form-input {
-                @apply w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder-slate-400;
-            }
-            
-            /* Primary Button */
-            .btn-primary {
-                @apply w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-primary hover:bg-primaryHover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all;
-            }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-alabaster);
+            color: var(--text-obsidian);
+        }
 
-            /* Social Buttons */
-            .btn-social {
-                @apply w-full flex items-center justify-center gap-3 px-4 py-2.5 border rounded-lg shadow-sm text-sm font-medium bg-white hover:bg-slate-50 transition-all focus:outline-none focus:ring-2 focus:ring-offset-1;
-            }
-            .btn-google {
-                @apply text-slate-700 border-slate-300;
-            }
-            .btn-apple {
-                @apply bg-black text-white border-transparent hover:bg-gray-900;
-            }
+        .auth-card {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-            /* Transition Base for JS Toggling */
-            .auth-card {
-                @apply transition-all duration-300 ease-in-out;
-            }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-stone);
+            background-color: #FFFFFF;
+            color: var(--text-obsidian);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--terracotta);
+            box-shadow: 0 0 0 3px rgba(186, 81, 42, 0.12);
+        }
+
+        .btn-atelier {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: 0.75rem;
+            background-color: var(--terracotta);
+            color: #FFFFFF;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(186, 81, 42, 0.15);
+        }
+
+        .btn-atelier:hover {
+            background-color: var(--terracotta-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(186, 81, 42, 0.2);
+        }
+
+        .btn-atelier:active {
+            transform: scale(0.99);
+        }
+
+        .btn-social {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 0.65rem 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-stone);
+            background-color: #FFFFFF;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-obsidian);
+            transition: all 0.2s ease;
+        }
+
+        .btn-social:hover {
+            background-color: #F7F5F0;
+            border-color: #D8D4CA;
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 antialiased font-sans">
+
+<body
+    class="min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 antialiased selection:bg-[#BA512A] selection:text-white">
 
     <div class="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
-        <div class="inline-flex items-center justify-center w-12 h-12 bg-primary rounded-xl text-white text-xl font-bold shadow-lg shadow-indigo-200 mb-4">
-            <i class="fa-solid fa-shirt"></i>
-        </div>
-        <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">
-            OutfitAI
-        </h2>
-        <p class="mt-2 text-sm text-slate-600">
-            Your personal AI stylist and wardrobe manager.
+        <a href="/" class="inline-flex items-center gap-2.5 mb-4 group">
+            <div
+                class="w-10 h-10 rounded-xl bg-[#181715] text-[#FAF9F6] flex items-center justify-center font-bold text-base transition-transform group-hover:scale-105">
+                <i class="fa-solid fa-shirt text-sm text-[#FAF9F6]"></i>
+            </div>
+            <span class="text-2xl font-bold tracking-tight text-[#181715]">OutfitAI</span>
+        </a>
+        <p class="text-sm text-[#706D65] max-w-sm mx-auto">
+            Your personal digital wardrobe and AI fashion stylist.
         </p>
     </div>
 
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-4 shadow-xl shadow-slate-200 sm:rounded-2xl sm:px-10 border border-slate-100 relative overflow-hidden">
-            
+        <div
+            class="bg-white py-8 px-6 sm:px-10 rounded-2xl border border-[#E5E2DA] shadow-[0_4px_24px_rgba(24,23,21,0.04)] relative">
+
+            <!-- Login Form -->
             <div id="login-container" class="auth-card">
-                <h3 class="text-xl font-bold text-slate-900 mb-6">Sign in to your account</h3>
-                
-                <form id="login-form" class="space-y-6">
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-[#181715]">Welcome back</h3>
+                    <p class="text-xs text-[#706D65] mt-0.5">Sign in to access your curated wardrobe.</p>
+                </div>
+
+                <form id="login-form" class="space-y-4">
                     <div>
-                        <label for="login-email" class="block text-sm font-medium text-slate-700 mb-1">Email address</label>
-                        <input type="email" id="login-email" required placeholder="you@example.com" class="form-input">
+                        <label for="login-email"
+                            class="block text-xs font-semibold uppercase tracking-wider text-[#706D65] mb-1.5">Email
+                            address</label>
+                        <input type="email" id="login-email" required placeholder="you@domain.com" class="form-input">
                     </div>
 
                     <div>
-                        <label for="login-password" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="login-password"
+                                class="block text-xs font-semibold uppercase tracking-wider text-[#706D65]">Password</label>
+                        </div>
                         <input type="password" id="login-password" required placeholder="••••••••" class="form-input">
                     </div>
 
-                    <button type="button" id="btn-login" class="btn-primary">
+                    <div class="flex items-center justify-between pt-1">
+                        <label
+                            class="flex items-center gap-2 cursor-pointer text-xs font-medium text-[#706D65] select-none">
+                            <input type="checkbox" id="login-remember-me" checked
+                                class="w-4 h-4 rounded text-[#BA512A] focus:ring-[#BA512A] border-[#D8D4CA] accent-[#BA512A]">
+                            <span>Keep me logged in</span>
+                        </label>
+                    </div>
+
+                    <button type="button" id="btn-login" class="btn-atelier mt-2">
                         Sign In
                     </button>
                 </form>
 
-                <p id="auth-error-login" class="mt-4 text-center text-sm text-red-600 font-medium min-h-[20px]"></p>
+                <p id="auth-error-login" class="mt-3 text-center text-xs text-red-600 font-medium min-h-[16px]"></p>
 
                 <div class="mt-6">
                     <div class="relative">
                         <div class="absolute inset-0 flex items-center">
-                            <div class="w-full border-t border-slate-200"></div>
+                            <div class="w-full border-t border-[#E5E2DA]"></div>
                         </div>
-                        <div class="relative flex justify-center text-sm">
-                            <span class="px-2 bg-white text-slate-500">Or continue with</span>
+                        <div class="relative flex justify-center text-xs">
+                            <span class="px-3 bg-white text-[#99958C]">Or continue with</span>
                         </div>
                     </div>
 
-                    <div class="mt-6 grid grid-cols-1 gap-3">
-                        <button type="button" id="btn-google-login" class="btn-social btn-google">
-                            <svg class="h-5 w-5" aria-hidden="true" viewBox="0 0 18 18"><path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.67 7.67 0 0 0 2.44-5.77c0-.59-.05-1.18-.15-1.76Z" fill="#4285F4"></path><path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.87 4.87 0 0 1-2.7 1.01c-2.08 0-3.84-1.38-4.48-3.24H1.86v2.07A8 8 0 0 0 8.98 17Z" fill="#34A853"></path><path d="M4.5 10.52a4.84 4.84 0 0 1 0-3.04V5.41H1.86a8 8 0 0 0 0 7.18l2.64-2.07Z" fill="#FBBC05"></path><path d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.86 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3Z" fill="#EA4335"></path></svg>
+                    <div class="mt-4 space-y-2.5">
+                        <button type="button" id="btn-google-login" class="btn-social">
+                            <svg class="h-4 w-4" aria-hidden="true" viewBox="0 0 18 18">
+                                <path
+                                    d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.67 7.67 0 0 0 2.44-5.77c0-.59-.05-1.18-.15-1.76Z"
+                                    fill="#4285F4"></path>
+                                <path
+                                    d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.87 4.87 0 0 1-2.7 1.01c-2.08 0-3.84-1.38-4.48-3.24H1.86v2.07A8 8 0 0 0 8.98 17Z"
+                                    fill="#34A853"></path>
+                                <path d="M4.5 10.52a4.84 4.84 0 0 1 0-3.04V5.41H1.86a8 8 0 0 0 0 7.18l2.64-2.07Z"
+                                    fill="#FBBC05"></path>
+                                <path
+                                    d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.86 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3Z"
+                                    fill="#EA4335"></path>
+                            </svg>
                             Google
                         </button>
-                        
-                        <button type="button" id="btn-apple-login" class="btn-social btn-apple">
-                            <svg class="h-5 w-5 text-white" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24"><path d="M12.012 15.345c-.32 0-.64-.047-.949-.138-1.71-.534-3.66-1.503-3.66-4.463 0-2.88 1.93-4.323 3.65-4.323.94 0 1.63.483 2.19.483.56 0 1.41-.534 2.37-.534 1.9 0 3.32 1.187 3.32 3.493 0 1.543-.78 3.012-1.66 4.018-.76.9-1.28 1.802-1.28 2.87 0 .28-.008.56-.023.832-.802.264-1.65.362-2.558.158zm4.493-13.34c.008-.666.526-1.11 1.09-1.133.05-.002.102-.002.152-.002.66 0 1.25.46 1.25 1.09 0 .64-.54 1.13-1.21 1.13-.6 0-1.21-.46-1.28-1.085zM20.94 10.15c-.06-3.12-2.34-4.834-4.66-4.834-1.21 0-2.31.64-3.05 1.23-.84.67-1.49 1.8-1.49 1.8s-.59-1.13-1.48-1.8c-.76-.58-1.86-1.23-3.06-1.23-2.35 0-4.62 1.714-4.62 4.834 0 3.2 2.76 6.83 5.48 6.83.91 0 1.77-.4 2.47-.4.67 0 1.34.4 2.43.4 2.89 0 5.42-3.6 5.42-6.83z"></path></svg>
-                            Apple
+
+                        <button type="button" id="btn-apple-login" class="btn-social">
+                            <span class="text-base leading-none select-none" role="img" aria-label="Apple">🍎</span>
+                            <span>Apple</span>
                         </button>
+
+                        <a href="/api/auth/guest_login"
+                            class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-[#BA512A]/30 bg-[#FDF3EE] text-xs font-semibold text-[#BA512A] hover:bg-[#FBEBE3] transition-colors text-center">
+                            <i class="fa-solid fa-user-check text-xs"></i>
+                            Quick Guest Access / Demo Student
+                        </a>
                     </div>
                 </div>
 
-                <div class="mt-8 text-center">
-                    <p class="text-sm text-slate-600">
-                        Don't have an account? 
-                        <a id="show-register" class="font-medium text-primary hover:text-primaryHover cursor-pointer hover:underline">Register here</a>
+                <div class="mt-6 text-center pt-4 border-t border-[#E5E2DA]">
+                    <p class="text-xs text-[#706D65]">
+                        Don't have an account yet?
+                        <a id="show-register"
+                            class="font-semibold text-[#BA512A] hover:underline cursor-pointer">Register here</a>
                     </p>
                 </div>
             </div>
 
+            <!-- Register Form -->
             <div id="register-container" class="auth-card hidden opacity-0 translate-y-4">
-                <h3 class="text-xl font-bold text-slate-900 mb-6">Create your account</h3>
-                
-                <form id="register-form" class="space-y-5">
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-[#181715]">Create Account</h3>
+                    <p class="text-xs text-[#706D65] mt-0.5">Start building your intelligent personal wardrobe.</p>
+                </div>
+
+                <form id="register-form" class="space-y-4">
                     <div>
-                        <label for="reg-name" class="block text-sm font-medium text-slate-700 mb-1">Display Name</label>
-                        <input type="text" id="reg-name" required placeholder="Your Name" class="form-input">
+                        <label for="reg-name"
+                            class="block text-xs font-semibold uppercase tracking-wider text-[#706D65] mb-1.5">Display
+                            Name</label>
+                        <input type="text" id="reg-name" required placeholder="Alex Vance" class="form-input">
                     </div>
 
                     <div>
-                        <label for="reg-email" class="block text-sm font-medium text-slate-700 mb-1">Email address</label>
-                        <input type="email" id="reg-email" required placeholder="you@example.com" class="form-input">
+                        <label for="reg-email"
+                            class="block text-xs font-semibold uppercase tracking-wider text-[#706D65] mb-1.5">Email
+                            address</label>
+                        <input type="email" id="reg-email" required placeholder="you@domain.com" class="form-input">
                     </div>
 
                     <div>
-                        <label for="reg-password" class="block text-sm font-medium text-slate-700 mb-1">Password (min. 6 characters)</label>
+                        <label for="reg-password"
+                            class="block text-xs font-semibold uppercase tracking-wider text-[#706D65] mb-1.5">Password
+                            (min. 6 characters)</label>
                         <input type="password" id="reg-password" required placeholder="••••••••" class="form-input">
                     </div>
 
-                    <button type="button" id="btn-register" class="btn-primary mt-2">
+                    <button type="button" id="btn-register" class="btn-atelier mt-2">
                         Create Account
                     </button>
                 </form>
 
-                <p id="auth-error-register" class="mt-4 text-center text-sm text-red-600 font-medium min-h-[20px]"></p>
+                <p id="auth-error-register" class="mt-3 text-center text-xs text-red-600 font-medium min-h-[16px]"></p>
 
-                <div class="mt-6 text-center">
-                    <p class="text-sm text-slate-600">
-                        Already have an account? 
-                        <a id="show-login" class="font-medium text-primary hover:text-primaryHover cursor-pointer hover:underline">Sign in</a>
+                <div class="mt-6 text-center pt-4 border-t border-[#E5E2DA]">
+                    <p class="text-xs text-[#706D65]">
+                        Already have an account?
+                        <a id="show-login" class="font-semibold text-[#BA512A] hover:underline cursor-pointer">Sign
+                            in</a>
                     </p>
                 </div>
             </div>
@@ -166,4 +260,5 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="/static/js/login.js"></script>
 </body>
+
 </html>

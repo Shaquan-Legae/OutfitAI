@@ -2,7 +2,7 @@
   "id": "20251022182337703338-Kayano_14.jpeg",
   "filename": "20251022182337703338-Kayano_14.jpeg",
   "url": "/static/uploads/20251022182337703338-Kayano_14.jpeg",
-  "name": "Asics Gel Kayano 14",
+  "name": "Asics GEL-Kayano 14 Silver Sneakers",
   "category": "Shoes",
   "tags": [
     "Running Shoe",
@@ -11,5 +11,22 @@
   ],
   "description": "A red running shoe (casual)",
   "uploaded_at": "2025-10-22T18:23:37.889836",
-  "in_laundry": false
+  "in_laundry": false,
+  "subcategory": "Running Shoes",
+  "colors": [
+    "Silver",
+    "White"
+  ],
+  "pattern": "Textured",
+  "material": "Mesh",
+  "fit": "Regular",
+  "styles": [
+    "Sporty",
+    "Streetwear"
+  ],
+  "seasons": [
+    "All Season"
+  ],
+  "formality": "Casual",
+  "confidence": 0.96
 }

@@ -2,7 +2,7 @@
   "id": "20251022174434758384-suede.webp",
   "filename": "20251022174434758384-suede.webp",
   "url": "/static/uploads/20251022174434758384-suede.webp",
-  "name": "Puma Suede XL",
+  "name": "Puma Suede XL Skate Sneakers",
   "category": "Shoes",
   "tags": [
     "Running Shoe",
@@ -11,5 +11,22 @@
   ],
   "description": "A red running shoe (formal)",
   "uploaded_at": "2025-10-22T17:44:34.985543",
-  "in_laundry": true
+  "in_laundry": false,
+  "subcategory": "Sneakers",
+  "colors": [
+    "Black",
+    "White"
+  ],
+  "pattern": "Solid",
+  "material": "Suede",
+  "fit": "Regular",
+  "styles": [
+    "Streetwear",
+    "Casual"
+  ],
+  "seasons": [
+    "All Season"
+  ],
+  "formality": "Casual",
+  "confidence": 0.96
 }

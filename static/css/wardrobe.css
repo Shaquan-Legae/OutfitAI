@@ -1,364 +1,575 @@
-/* =======================
-   :ROOT VARIABLES
-   (Matched to Tailwind Colors)
-======================= */
+/* ==========================================================================
+   OutfitAI — Wardrobe Design System
+   Aesthetic: Editorial Fashion-Tech / Wardrobe Studio
+   Palette: Warm Stone Neutral, Deep Obsidian, Artisanal Terracotta Accent
+   ========================================================================== */
+
 :root {
-  --primary-color: #4F46E5;
-  /* Indigo 600 */
-  --primary-hover: #4338CA;
-  /* Indigo 700 */
-  --secondary-bg: #F8FAFC;
-  /* Slate 50 */
-  --border-color: #E2E8F0;
-  /* Slate 200 */
-  --laundry-color: #F59E0B;
-  /* Amber 500 */
-  --text-dark: #0F172A;
-  /* Slate 900 */
-  --text-muted: #64748B;
-  /* Slate 500 */
-  --font-family: 'Inter', sans-serif;
+  /* Surface & Canvas Tokens */
+  --bg-canvas: #FAF9F6;
+  --bg-surface: #FFFFFF;
+  --bg-studio: #F3F1EC;
+  --bg-studio-dark: #EAE7E0;
+  --bg-hover: #F6F4EE;
+
+  /* Line & Structure */
+  --border-subtle: #E8E5DD;
+  --border-medium: #D8D4CA;
+  --border-strong: #181715;
+
+  /* Typography */
+  --text-main: #181715;
+  --text-muted: #6C6860;
+  --text-subtle: #99958C;
+  --text-inverted: #FAF9F6;
+
+  /* Restrained Fashion Accent (Terracotta) */
+  --accent-terracotta: #BA512A;
+  --accent-terracotta-hover: #9E4320;
+  --accent-terracotta-subtle: #F7EFEA;
+  --accent-terracotta-border: #E8C8B8;
+
+  /* Laundry Archive State (Warm Ochre) */
+  --color-laundry: #A16207;
+  --color-laundry-bg: #FEF3C7;
+  --color-laundry-border: #FDE68A;
+
+  /* Shadows */
+  --shadow-subtle: 0 1px 2px rgba(24, 23, 21, 0.04);
+  --shadow-card: 0 2px 8px -2px rgba(24, 23, 21, 0.06), 0 1px 3px rgba(24, 23, 21, 0.04);
+  --shadow-elevated: 0 12px 32px -4px rgba(24, 23, 21, 0.12), 0 4px 12px rgba(24, 23, 21, 0.06);
+
+  /* Fonts */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
-/* =======================
-   GLOBAL UTILS
-======================= */
+/* Base resets & typography */
 body {
-  font-family: var(--font-family);
-  background-color: var(--secondary-bg);
+  font-family: var(--font-sans);
+  background-color: var(--bg-canvas);
+  color: var(--text-main);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hide Scrollbar but allow scrolling */
-.hide-scroll {
-  -ms-overflow-style: none;
-  /* IE and Edge */
-  scrollbar-width: none;
-  /* Firefox */
+/* Mono counters */
+.font-tabular {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1, "zero" 1;
 }
 
+/* Scrollbars */
 .hide-scroll::-webkit-scrollbar {
   display: none;
-  /* Chrome, Safari, Opera */
+}
+.hide-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Animations */
-@keyframes slideUp {
+/* Editorial Eyebrow Badge */
+.editorial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  background-color: var(--bg-studio);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Modern Fashion Buttons */
+.btn-atelier {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.125rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+}
+.btn-atelier:active {
+  transform: scale(0.98);
+}
+.btn-atelier-primary {
+  background-color: var(--text-main);
+  color: var(--text-inverted);
+  border-color: var(--text-main);
+}
+.btn-atelier-primary:hover {
+  background-color: #2D2B28;
+  border-color: #2D2B28;
+  box-shadow: 0 4px 12px rgba(24, 23, 21, 0.15);
+}
+.btn-atelier-accent {
+  background-color: var(--accent-terracotta);
+  color: #FFFFFF;
+  border-color: var(--accent-terracotta);
+}
+.btn-atelier-accent:hover {
+  background-color: var(--accent-terracotta-hover);
+  box-shadow: 0 4px 14px rgba(186, 81, 42, 0.25);
+}
+.btn-atelier-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  border-color: var(--border-subtle);
+}
+.btn-atelier-secondary:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-medium);
+}
+.btn-atelier-danger {
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border-color: #FEE2E2;
+}
+.btn-atelier-danger:hover {
+  background-color: #DC2626;
+  color: #FFFFFF;
+}
+
+/* Category Filter Tabs */
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4375rem 0.9375rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  color: var(--text-muted);
+  user-select: none;
+}
+.cat-pill:hover {
+  color: var(--text-main);
+  border-color: var(--border-medium);
+  background-color: var(--bg-hover);
+}
+.cat-pill.active {
+  background-color: var(--text-main);
+  color: var(--text-inverted);
+  border-color: var(--text-main);
+  box-shadow: 0 2px 6px rgba(24, 23, 21, 0.12);
+}
+.cat-pill .pill-count {
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  padding: 0.0625rem 0.375rem;
+  border-radius: 9999px;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+.cat-pill.active .pill-count {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Dropzone & AI Scanning Zone */
+.dropzone-container {
+  position: relative;
+  border: 1.5px dashed var(--border-medium);
+  background-color: var(--bg-surface);
+  border-radius: 1rem;
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+.dropzone-container:hover, .dropzone-container.drag-over {
+  border-color: var(--accent-terracotta);
+  background-color: var(--accent-terracotta-subtle);
+}
+
+/* Scanner Animation Over Image */
+.scanner-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.875rem;
+  background: var(--bg-studio);
+}
+.scanner-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--accent-terracotta) 50%, transparent 100%);
+  box-shadow: 0 0 12px 2px var(--accent-terracotta);
+  z-index: 20;
+  animation: scanCycle 2.2s ease-in-out infinite alternate;
+}
+.scanner-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(186, 81, 42, 0.05) 0%, transparent 40%, rgba(186, 81, 42, 0.08) 100%);
+  z-index: 10;
+  pointer-events: none;
+}
+@keyframes scanCycle {
+  0% {
+    top: 5%;
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 95%;
+    opacity: 0.3;
+  }
+}
+
+/* Status Pulse Indicator */
+.status-pulse {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--accent-terracotta);
+  box-shadow: 0 0 0 0 rgba(186, 81, 42, 0.5);
+  animation: pulseDot 1.8s infinite;
+}
+@keyframes pulseDot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(186, 81, 42, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(186, 81, 42, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(186, 81, 42, 0);
+  }
+}
+
+/* ==========================================================================
+   Editorial Clothing Card Grid
+   ========================================================================== */
+
+.clothing-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.875rem;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+.clothing-card:hover {
+  border-color: var(--border-medium);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+}
+
+/* Studio Canvas Container */
+.clothing-card-studio {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 4.75;
+  background-color: var(--bg-studio);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow: hidden;
+}
+.clothing-card-studio img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.clothing-card:hover .clothing-card-studio img {
+  transform: scale(1.05);
+}
+
+/* Hover Quick Action Buttons */
+.card-quick-actions {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10;
+}
+.clothing-card:hover .card-quick-actions,
+.clothing-card.selected .card-quick-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.action-icon-btn {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-size: 0.75rem;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+.action-icon-btn:hover {
+  background-color: var(--text-main);
+  color: #FFFFFF;
+  border-color: var(--text-main);
+}
+.action-icon-btn.is-active-laundry {
+  background-color: var(--color-laundry-bg);
+  color: var(--color-laundry);
+  border-color: var(--color-laundry-border);
+}
+
+/* Selection Checkbox */
+.card-select-checkbox {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.625rem;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(24, 23, 21, 0.3);
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  color: transparent;
+  transition: all 0.2s ease;
+  z-index: 10;
+  opacity: 0;
+}
+.selection-active .card-select-checkbox,
+.clothing-card:hover .card-select-checkbox,
+.clothing-card.selected .card-select-checkbox {
+  opacity: 1;
+}
+.clothing-card.selected .card-select-checkbox {
+  background-color: var(--text-main);
+  border-color: var(--text-main);
+  color: #FFFFFF;
+}
+.clothing-card.selected {
+  border-color: var(--text-main);
+  ring: 2px solid var(--text-main);
+}
+
+/* Laundry State on Card */
+.clothing-card.in-laundry .clothing-card-studio {
+  background-color: #FAF5EA;
+}
+.clothing-card.in-laundry .clothing-card-studio img {
+  filter: grayscale(85%) contrast(0.95);
+  opacity: 0.65;
+}
+
+/* Laundry Badge */
+.laundry-pill-badge {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 9999px;
+  background-color: rgba(254, 243, 199, 0.94);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--color-laundry-border);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-laundry);
+  z-index: 5;
+}
+
+/* Card Content Details */
+.clothing-card-info {
+  padding: 0.875rem 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.clothing-card-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.clothing-card-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.clothing-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+.micro-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.125rem 0.4375rem;
+  border-radius: 0.25rem;
+  background-color: var(--bg-studio);
+  color: var(--text-muted);
+}
+.color-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+/* ==========================================================================
+   AI Result Review Drawer / Modal
+   ========================================================================== */
+
+.review-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-elevated);
+  overflow: hidden;
+}
+
+/* Attribute Chips & Selectors */
+.chip-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3125rem 0.6875rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.chip-toggle:hover {
+  border-color: var(--border-medium);
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+.chip-toggle.selected {
+  background-color: var(--accent-terracotta-subtle);
+  border-color: var(--accent-terracotta-border);
+  color: var(--accent-terracotta);
+  font-weight: 600;
+}
+
+/* Floating Batch Action Dock */
+.batch-dock {
+  position: fixed;
+  bottom: 1.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.625rem 1.25rem 0.625rem 1.5rem;
+  background-color: var(--text-main);
+  color: #FFFFFF;
+  border-radius: 9999px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  animation: dockSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes dockSlideUp {
   from {
     transform: translate(-50%, 100%);
     opacity: 0;
   }
-
   to {
     transform: translate(-50%, 0);
     opacity: 1;
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-/* =======================
-   COMPONENTS
-======================= */
-
-/* --- Card Base --- */
-.card {
-  background: white;
-  border-radius: 1rem;
-  /* rounded-2xl */
-  border: 1px solid var(--border-color);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
-/* --- Buttons --- */
-.btn {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0.625rem 1rem;
-  border-radius: 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06);
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-}
-
-.btn-secondary {
-  background-color: white;
-  color: #334155;
-  border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover {
-  background-color: #F8FAFC;
-}
-
-/* --- Inputs --- */
-.form-input {
-  display: block;
+/* Form inputs */
+.editorial-input {
   width: 100%;
-  padding: 0.625rem 1rem;
-  background-color: #F8FAFC;
-  border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.875rem;
   font-size: 0.875rem;
-  color: var(--text-dark);
-  margin-top: 0.25rem;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+.editorial-input:focus {
+  outline: none;
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 2px rgba(24, 23, 21, 0.08);
 }
 
-.form-input:focus {
-  background-color: white;
-  outline: 2px solid var(--primary-color);
-  border-color: transparent;
-}
-
-/* =======================
-   ITEM CARD (The Carousel Item)
-======================= */
-.item-card {
-  position: relative;
-  background: white;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  width: 8rem;
-  /* w-32 */
-  height: 10rem;
-  /* h-40 */
-  scroll-snap-align: start;
-  cursor: pointer;
-  user-select: none;
-}
-
-/* Hover Effect */
-.item-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  border-color: #C7D2FE;
-  /* indigo-200 */
-}
-
-/* Image */
-.item-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s;
-}
-
-.item-card:hover img {
-  transform: scale(1.1);
-}
-
-/* Overlay */
-.item-card-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(15, 23, 42, 0.9), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 0.75rem;
-  text-align: left;
-}
-
-.item-card:hover .item-card-overlay {
-  opacity: 1;
-}
-
-.item-name {
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* =======================
-   STATES: SELECTION & LAUNDRY
-======================= */
-
-/* Selection Checkbox (Hidden by default) */
-.select-checkbox {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 30;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background-color: rgba(0, 0, 0, 0.4);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: all 0.2s;
-  backdrop-filter: blur(4px);
-  transform: scale(0.9);
-}
-
-/* Selected State */
-.item-card.selected {
-  border: 2px solid var(--primary-color);
-  transform: translateY(-4px);
-}
-
-.item-card.selected .select-checkbox {
-  opacity: 1;
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
-  transform: scale(1);
-}
-
-.item-card.selected .item-card-overlay {
-  opacity: 1;
-}
-
-/* Laundry State */
-.item-card.is-laundry {
-  border-color: #FCD34D;
-  /* amber-300 */
-  background-color: #FFFBEB;
-  /* amber-50 */
-}
-
-.item-card.is-laundry img {
-  filter: grayscale(100%);
-  opacity: 0.6;
-}
-
-.item-card.is-laundry .item-card-overlay {
-  background: linear-gradient(to top, rgba(120, 53, 15, 0.8), transparent);
-}
-
-.item-card.is-laundry .wash-btn {
-  background-color: var(--laundry-color);
-  color: white;
-  opacity: 1;
-}
-
-/* Wash Button (Hover Action) */
-.wash-btn {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 30;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(4px);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  opacity: 0;
-  transition: all 0.2s;
-  transform: translateY(-5px);
-}
-
-.item-card:hover .wash-btn {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.wash-btn:hover {
-  background-color: white;
-  color: var(--primary-color);
-}
-
-/* =======================
-   FLOATING SELECTION BAR
-======================= */
-.selection-bar {
+/* Modals */
+.modal-backdrop {
   position: fixed;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  /* Key for centering */
-  background-color: rgba(15, 23, 42, 0.95);
-  /* slate-900 */
-  backdrop-filter: blur(8px);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 9999px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  inset: 0;
+  background-color: rgba(24, 23, 21, 0.45);
+  backdrop-filter: blur(4px);
   z-index: 50;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  justify-content: center;
+  padding: 1rem;
 }
 
-.selection-bar.hidden {
-  display: none;
-}
-
-/* Filters */
-.filter-btn {
-  padding: 0.375rem 1rem;
+/* Confident badge */
+.confidence-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border: 1px solid;
-  transition: all 0.2s;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.filter-btn.active {
-  background-color: var(--text-dark);
-  color: white;
-  border-color: var(--text-dark);
-}
-
-.filter-btn.inactive {
-  background-color: white;
-  color: var(--text-muted);
-  border-color: var(--border-color);
-}
-
-.filter-btn.inactive:hover {
-  background-color: #F8FAFC;
-  border-color: #CBD5E1;
+  background-color: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  color: #065F46;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
 }

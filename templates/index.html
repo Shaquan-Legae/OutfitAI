@@ -1,253 +1,466 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="img-src https://cdn.weatherapi.com data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;">
-    
-    <title>Dashboard - OutfitAI</title>
-    
+    <meta http-equiv="Content-Security-Policy"
+        content="img-src https://cdn.weatherapi.com data: https: 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;">
+
+    <title>Dashboard — OutfitAI</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        primary: '#4F46E5', // Indigo 600
-                        primaryHover: '#4338CA', // Indigo 700
-                        weatherFrom: '#3B82F6', // Blue 500
-                        weatherTo: '#4F46E5',   // Indigo 600
-                    }
-                }
-            }
+    <style>
+        :root {
+            --bg-alabaster: #FAF9F6;
+            --surface-plate: #FFFFFF;
+            --border-stone: #E5E2DA;
+            --text-obsidian: #181715;
+            --text-muted: #706D65;
+            --terracotta: #BA512A;
+            --terracotta-hover: #9E4321;
         }
-    </script>
 
-    <style type="text/tailwindcss">
-        @layer components {
-            /* --- WEATHER WIDGET TRANSITIONS --- */
-            /* These classes ensure the JS toggles work with Tailwind styles */
-            
-            .weather-card {
-                @apply relative overflow-hidden rounded-2xl bg-gradient-to-br from-weatherFrom to-weatherTo text-white shadow-lg transition-all duration-300 p-6 sm:p-8 z-20;
-            }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-alabaster);
+            color: var(--text-obsidian);
+        }
 
-            /* State: Loading */
-            .weather-card.loading {
-                @apply from-slate-100 to-slate-200 text-slate-400 cursor-wait shadow-none;
-            }
+        .font-tabular {
+            font-feature-settings: "tnum" 1, "cv02" 1;
+        }
 
-            /* State: Error */
-            .weather-card.error {
-                @apply from-red-500 to-red-600 text-white;
-            }
+        /* --- WEATHER BAROMETER CARD --- */
+        .weather-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 1.25rem;
+            background: linear-gradient(145deg, #1F1D1A 0%, #161513 100%);
+            color: #FAF9F6;
+            border: 1px solid rgba(229, 226, 218, 0.15);
+            box-shadow: 0 4px 20px -2px rgba(24, 23, 21, 0.12);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 1.75rem;
+            z-index: 20;
+        }
 
-            /* State: Clickable (Default) */
-            .weather-card.clickable {
-                @apply cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-200;
-            }
+        .weather-card.loading {
+            background: #F3F1EC;
+            color: #99958C;
+            cursor: wait;
+            border-color: #E5E2DA;
+            box-shadow: none;
+        }
 
-            /* State: Active (Expanded) */
-            .weather-card.active {
-                @apply rounded-b-none hover:translate-y-0 shadow-none;
-            }
+        .weather-card.error {
+            background: #782C1B;
+            color: #FFFFFF;
+        }
 
-            /* --- EXTRA DETAILS PANEL --- */
-            /* The sliding panel logic */
-            #weather-extra-details {
-                @apply bg-white border-x border-b border-slate-200 rounded-b-2xl shadow-md -mt-1 z-10 overflow-hidden max-h-0 opacity-0 transition-all duration-500 ease-in-out;
-            }
+        .weather-card.clickable {
+            cursor: pointer;
+        }
 
-            #weather-extra-details.open {
-                @apply max-h-[800px] opacity-100 py-6 px-6 sm:px-8;
-            }
+        .weather-card.clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px -6px rgba(24, 23, 21, 0.2);
+            border-color: rgba(186, 81, 42, 0.4);
+        }
 
-            /* --- HOURLY ITEMS (Injected by JS) --- */
-            /* Styles for elements created dynamically in index.js */
-            .hour-item {
-                @apply flex-none w-[70px] flex flex-col items-center justify-center py-3 bg-slate-50 rounded-xl border border-slate-100 snap-center;
-            }
-            .hour-item .hour-time {
-                @apply text-xs font-semibold text-slate-500 mb-1;
-            }
-            .hour-item img {
-                @apply w-8 h-8 my-1 drop-shadow-sm;
-            }
-            .hour-item .hour-temp {
-                @apply text-sm font-bold text-slate-800;
-            }
-            .hour-item .hour-rain {
-                @apply text-[10px] text-blue-500 font-medium flex items-center gap-0.5 mt-1;
-            }
+        .weather-card.active {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
 
-            /* Hide Scrollbar utility */
-            .hide-scroll::-webkit-scrollbar {
-                height: 0px;
-                background: transparent;
-            }
+        /* Weather Extra Details */
+        #weather-extra-details {
+            background-color: #FFFFFF;
+            border-left: 1px solid #E5E2DA;
+            border-right: 1px solid #E5E2DA;
+            border-bottom: 1px solid #E5E2DA;
+            border-bottom-left-radius: 1.25rem;
+            border-bottom-right-radius: 1.25rem;
+            box-shadow: 0 8px 24px -4px rgba(24, 23, 21, 0.05);
+            margin-top: -1px;
+            z-index: 10;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #weather-extra-details.open {
+            max-height: 800px;
+            opacity: 1;
+            padding: 1.75rem;
+        }
+
+        /* Hourly Items */
+        .hour-item {
+            flex: none;
+            width: 72px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 0.5rem;
+            background-color: #F8F6F2;
+            border-radius: 0.875rem;
+            border: 1px solid #E8E5DC;
+            scroll-snap-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .hour-item:hover {
+            background-color: #F0EDE5;
+            border-color: #DDD9CE;
+        }
+
+        .hour-item .hour-time {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #706D65;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }
+
+        .hour-item img {
+            width: 2rem;
+            height: 2rem;
+            margin: 0.25rem 0;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08));
+        }
+
+        .hour-item .hour-temp {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #181715;
+            font-feature-settings: "tnum" 1;
+        }
+
+        .hour-item .hour-rain {
+            font-size: 0.65rem;
+            color: #BA512A;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            margin-top: 0.25rem;
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Action Cards */
+        .atelier-card {
+            background-color: #FFFFFF;
+            border: 1px solid var(--border-stone);
+            border-radius: 1.25rem;
+            padding: 1.75rem;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 1px 3px rgba(24, 23, 21, 0.03);
+        }
+
+        .atelier-card:hover {
+            transform: translateY(-2px);
+            border-color: #D8D4CA;
+            box-shadow: 0 10px 25px -5px rgba(24, 23, 21, 0.06);
+        }
+
+        .btn-atelier {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.65rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-atelier-accent {
+            background-color: var(--terracotta);
+            color: #FFFFFF;
+            box-shadow: 0 1px 3px rgba(186, 81, 42, 0.2);
+        }
+
+        .btn-atelier-accent:hover {
+            background-color: var(--terracotta-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-atelier-secondary {
+            background-color: #F3F1EC;
+            color: var(--text-obsidian);
+            border: 1px solid var(--border-stone);
+        }
+
+        .btn-atelier-secondary:hover {
+            background-color: #EBE8E1;
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased">
 
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center gap-8">
-                    <a href="/" class="flex-shrink-0 flex items-center gap-2">
-                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-                            <i class="fa-solid fa-shirt"></i>
+<body class="bg-[#FAF9F6] text-[#181715] antialiased selection:bg-[#BA512A] selection:text-white">
+
+    <!-- Global Navigation -->
+    <nav class="bg-[#FAF9F6]/95 backdrop-blur-md border-b border-[#E5E2DA] sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="relative flex justify-between h-16 items-center">
+
+                <!-- Logo & Brand -->
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center gap-2.5 group">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-[#181715] text-[#FAF9F6] flex items-center justify-center font-bold text-sm transition-transform group-hover:scale-105">
+                            <i class="fa-solid fa-shirt text-xs text-[#FAF9F6]"></i>
                         </div>
-                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
-                            OutfitAI
-                        </span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-lg font-bold tracking-tight text-[#181715]">OutfitAI</span>
+                        </div>
                     </a>
-                    <div class="hidden sm:flex sm:space-x-4">
-                        <a href="/" class="text-primary bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium" aria-current="page">Home</a>
-                        <a href="/wardrobe" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">My Wardrobe</a>
-                        <a href="/recommendations" class="text-slate-500 hover:text-primary hover:bg-indigo-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">Suggestions</a>
-                    </div>
                 </div>
+
+                <!-- Centered Desktop Links -->
+                <div class="hidden sm:flex sm:items-center sm:space-x-1 sm:absolute sm:left-1/2 sm:-translate-x-1/2">
+                    <a href="/" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-[#181715] text-[#FAF9F6]"
+                        aria-current="page">Dashboard</a>
+                    <a href="/wardrobe"
+                        class="px-3.5 py-1.5 text-xs font-medium text-[#706D65] hover:text-[#181715] hover:bg-[#F3F1EC] rounded-lg transition-colors">My
+                        Wardrobe</a>
+                    <a href="/recommendations"
+                        class="px-3.5 py-1.5 text-xs font-medium text-[#706D65] hover:text-[#181715] hover:bg-[#F3F1EC] rounded-lg transition-colors">Suggestions</a>
+                </div>
+
+                <!-- User & Actions -->
                 <div class="flex items-center gap-4">
-                    <span class="text-sm text-slate-600 hidden md:block">Welcome, <span class="font-semibold text-slate-900">{{ user.name }}</span></span>
-                    <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition-colors">
-                        <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Logout
+                    <span class="text-xs text-[#706D65] hidden md:block">
+                        Signed in as <span class="font-semibold text-[#181715]">{{ user.name }}</span>
+                    </span>
+
+                    <a href="/logout"
+                        class="text-xs font-medium text-[#706D65] hover:text-[#BA512A] px-2.5 py-1.5 rounded-lg border border-[#E5E2DA] hover:border-[#BA512A]/40 transition-colors"
+                        title="Logout">
+                        <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> <span
+                            class="hidden sm:inline">Logout</span>
                     </a>
+
+                    <button id="mobile-menu-btn"
+                        class="sm:hidden p-2 rounded-lg text-[#706D65] hover:bg-[#F3F1EC] focus:outline-none"
+                        aria-label="Toggle navigation menu">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
                 </div>
             </div>
+        </div>
+
+        <!-- Mobile Drawer -->
+        <div id="mobile-menu" class="hidden sm:hidden bg-[#FAF9F6] border-b border-[#E5E2DA] px-4 py-3 space-y-1">
+            <a href="/"
+                class="block px-3 py-2 rounded-lg text-sm font-semibold bg-[#181715] text-[#FAF9F6]">Dashboard</a>
+            <a href="/wardrobe"
+                class="block px-3 py-2 rounded-lg text-sm font-medium text-[#706D65] hover:bg-[#F3F1EC]">My Wardrobe</a>
+            <a href="/recommendations"
+                class="block px-3 py-2 rounded-lg text-sm font-medium text-[#706D65] hover:bg-[#F3F1EC]">Suggestions &
+                Stylist Chat</a>
         </div>
     </nav>
 
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-        
-        <div class="mb-8 text-center sm:text-left">
-            <h1 class="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-2">
-                {{ greeting }}, <span class="text-primary">{{ user.name }}</span>!
-            </h1>
-            <p class="text-slate-500 text-lg">Here is your daily forecast and wardrobe status.</p>
-        </div>
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
 
-        <div class="weather-container mb-10">
-            
-            <div id="weather-widget" class="weather-card loading clickable group">
-                <div class="flex flex-col sm:flex-row justify-between items-center gap-6">
-                    
-                    <div class="flex items-center gap-6">
-                        <div class="weather-icon relative">
-                            <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center shadow-inner backdrop-blur-sm">
-                                <i class="fa-solid fa-cloud text-3xl opacity-50"></i>
+        <!-- Hero Greeting -->
+        <header class="mb-8 md:mb-10">
+            <span class="text-xs font-semibold tracking-wider uppercase text-[#BA512A] block mb-1">Personal Styling
+                Engine</span>
+            <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-[#181715]">
+                {{ greeting }}, {{ user.name }}.
+            </h1>
+            <p class="text-sm text-[#706D65] mt-1 max-w-xl">
+                Real-time weather atmospheric data paired with intelligent wardrobe outfit recommendations.
+            </p>
+        </header>
+
+        <!-- Weather Barometer Widget -->
+        <section class="mb-10">
+            <div id="weather-widget" class="weather-card loading group">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
+
+                    <!-- Weather Metric -->
+                    <div class="flex items-center gap-4 text-center sm:text-left">
+                        <div
+                            class="weather-icon w-16 h-16 flex items-center justify-center rounded-2xl bg-white/10 p-2 text-3xl">
+                            <i class="fa-solid fa-spinner fa-spin text-xl text-[#BA512A]"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="weather-temp text-4xl sm:text-5xl font-extrabold font-tabular">--°C</span>
+                                <span class="weather-desc text-sm font-medium opacity-85 block capitalize">Detecting
+                                    conditions...</span>
                             </div>
                         </div>
-                        <div class="weather-details text-center sm:text-left">
-                            <span class="weather-temp block text-5xl sm:text-6xl font-bold tracking-tight">--°</span>
-                            <span class="weather-desc block text-lg font-medium opacity-90 mt-1">Loading weather...</span>
-                        </div>
                     </div>
 
+                    <!-- Location & Feels Like -->
                     <div class="weather-extra text-center sm:text-right">
-                        <span class="weather-city block text-2xl font-semibold">Detecting...</span>
-                        <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-full px-3 py-1 mt-2 text-sm font-medium">
-                             <i class="fa-solid fa-temperature-half text-xs"></i>
-                             <span class="weather-feels-like">Feels like: --°C</span>
+                        <span class="weather-city block text-xl sm:text-2xl font-bold tracking-tight">Detecting
+                            city...</span>
+                        <div
+                            class="inline-flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1 mt-1.5 text-xs font-medium">
+                            <i class="fa-solid fa-temperature-half text-[10px] text-[#BA512A]"></i>
+                            <span class="weather-feels-like font-tabular">Feels like: --°C</span>
                         </div>
-                        <div class="mt-3 text-xs opacity-75 font-medium uppercase tracking-wider flex items-center justify-center sm:justify-end gap-1 group-hover:translate-x-1 transition-transform">
-                            Click for details <i class="fa-solid fa-chevron-down"></i>
+                        <div
+                            class="mt-2 text-[11px] opacity-75 font-semibold uppercase tracking-wider flex items-center justify-center sm:justify-end gap-1.5 group-hover:text-[#BA512A] transition-colors">
+                            <span>Inspect Forecast</span> <i class="fa-solid fa-chevron-down text-[10px]"></i>
                         </div>
                     </div>
+
                 </div>
             </div>
 
+            <!-- Expandable Forecast & Atmosphere Details -->
             <div id="weather-extra-details">
-                
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8 pb-8 border-b border-slate-100">
-                    <div class="detail-item flex items-start gap-3">
-                        <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" /></svg>
-                        </div>
-                        <div>
-                            <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Wind</span>
-                            <span class="block text-lg font-bold text-slate-800" id="data-wind">-- kph</span>
-                        </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 pb-6 border-b border-[#E5E2DA]">
+
+                    <div class="p-3 rounded-xl bg-[#F8F6F2] border border-[#E8E5DC]">
+                        <span class="block text-[10px] font-semibold uppercase tracking-wider text-[#706D65]">Wind
+                            Speed</span>
+                        <span class="block text-base font-bold text-[#181715] font-tabular mt-0.5" id="data-wind">--
+                            kph</span>
                     </div>
 
-                    <div class="detail-item flex items-start gap-3">
-                        <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2.69l.1-.1a4.95 4.95 0 0 1 7 7L12 21l-7.1-11.41a4.95 4.95 0 0 1 7-7L12 2.69zM12 18a2 2 0 0 0 0-4 2 2 0 0 0 0 4z" /></svg>
-                        </div>
-                        <div>
-                            <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Humidity</span>
-                            <span class="block text-lg font-bold text-slate-800" id="data-humidity">-- %</span>
-                        </div>
+                    <div class="p-3 rounded-xl bg-[#F8F6F2] border border-[#E8E5DC]">
+                        <span
+                            class="block text-[10px] font-semibold uppercase tracking-wider text-[#706D65]">Humidity</span>
+                        <span class="block text-base font-bold text-[#181715] font-tabular mt-0.5" id="data-humidity">--
+                            %</span>
                     </div>
 
-                    <div class="detail-item flex items-start gap-3">
-                        <div class="p-2 bg-teal-50 rounded-lg text-teal-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
-                        </div>
-                        <div>
-                            <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Visibility</span>
-                            <span class="block text-lg font-bold text-slate-800" id="data-vis">-- km</span>
-                        </div>
+                    <div class="p-3 rounded-xl bg-[#F8F6F2] border border-[#E8E5DC]">
+                        <span
+                            class="block text-[10px] font-semibold uppercase tracking-wider text-[#706D65]">Visibility</span>
+                        <span class="block text-base font-bold text-[#181715] font-tabular mt-0.5" id="data-vis">--
+                            km</span>
                     </div>
 
-                    <div class="detail-item flex items-start gap-3">
-                        <div class="p-2 bg-amber-50 rounded-lg text-amber-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
-                        </div>
-                        <div>
-                            <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wide">UV Index</span>
-                            <span class="block text-lg font-bold text-slate-800" id="data-uv">--</span>
-                        </div>
+                    <div class="p-3 rounded-xl bg-[#F8F6F2] border border-[#E8E5DC]">
+                        <span class="block text-[10px] font-semibold uppercase tracking-wider text-[#706D65]">UV
+                            Exposure</span>
+                        <span class="block text-base font-bold text-[#181715] font-tabular mt-0.5"
+                            id="data-uv">--</span>
+                    </div>
+
+                </div>
+
+                <!-- Hourly Forecast Stream -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-[#181715] flex items-center gap-1.5">
+                            <i class="fa-regular fa-clock text-[#706D65]"></i> Hourly Trajectory
+                        </h4>
+                        <span class="text-[10px] text-[#706D65]">Swipe to explore</span>
+                    </div>
+                    <div class="hourly-forecast-container hide-scroll flex gap-2.5 overflow-x-auto pb-2 snap-x"
+                        id="hourly-forecast-container">
+                        <span class="loading-hourly text-[#706D65] text-xs italic w-full text-center py-4">Gathering
+                            hourly timeline...</span>
                     </div>
                 </div>
 
-                <div class="mb-8">
-                    <h4 class="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                        <i class="fa-regular fa-clock text-slate-400"></i> Hourly Forecast
-                    </h4>
-                    <div class="hourly-forecast-container hide-scroll flex gap-3 overflow-x-auto pb-2 snap-x" id="hourly-forecast-container">
-                        <span class="loading-hourly text-slate-400 text-sm italic w-full text-center py-4">Loading hourly data...</span>
-                    </div>
-                </div>
-
-                <div class="astro-section flex justify-center sm:justify-start gap-12 pt-2">
-                    <div class="astro-item flex items-center gap-3">
-                        <svg id="sunrise-icon" class="w-10 h-10 text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2v8" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m17.66 12.34 1.41-1.41" /><path d="M22 22H2" /><path d="M16 18a4 4 0 0 0-8 0" /></svg>
+                <!-- Astro Details -->
+                <div class="flex justify-center sm:justify-start gap-8 pt-2 text-xs border-t border-[#E5E2DA]">
+                    <div class="flex items-center gap-2.5">
+                        <i class="fa-regular fa-sun text-[#D49B45] text-base"></i>
                         <div>
-                            <span class="block text-xs font-semibold text-slate-400 uppercase">Sunrise</span>
-                            <span class="block text-base font-bold text-slate-800" id="sunrise-time">--:--</span>
+                            <span class="block text-[10px] font-semibold text-[#706D65] uppercase">Sunrise</span>
+                            <span class="block font-bold text-[#181715] font-tabular" id="sunrise-time">--:--</span>
                         </div>
                     </div>
-                    <div class="astro-item flex items-center gap-3">
-                        <svg id="sunset-icon" class="w-10 h-10 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 10V2" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m17.66 12.34 1.41-1.41" /><path d="M22 22H2" /><path d="M16 18a4 4 0 0 0-8 0" /></svg>
+                    <div class="flex items-center gap-2.5">
+                        <i class="fa-solid fa-moon text-[#BA512A] text-base"></i>
                         <div>
-                            <span class="block text-xs font-semibold text-slate-400 uppercase">Sunset</span>
-                            <span class="block text-base font-bold text-slate-800" id="sunset-time">--:--</span>
+                            <span class="block text-[10px] font-semibold text-[#706D65] uppercase">Sunset</span>
+                            <span class="block font-bold text-[#181715] font-tabular" id="sunset-time">--:--</span>
                         </div>
                     </div>
                 </div>
-
             </div>
-        </div>
+        </section>
 
-        <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div>
-                <h2 class="text-xl font-bold text-slate-900 mb-2">What's next?</h2>
-                <p class="text-slate-500">Manage your clothes or get a fresh outfit idea for this weather.</p>
+        <!-- Quick Access Modules -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+
+            <!-- Suggestions Card -->
+            <div class="atelier-card flex flex-col justify-between">
+                <div>
+                    <div
+                        class="w-10 h-10 rounded-xl bg-[#FDF3EE] text-[#BA512A] border border-[#F6DACD] flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-[#181715]">Curate Outfit Suggestion</h3>
+                    <p class="text-xs text-[#706D65] mt-1 leading-relaxed">
+                        Let Gemini synthesize your available pieces against today's climate for an effortless,
+                        coordinated look.
+                    </p>
+                </div>
+                <div class="mt-6 pt-4 border-t border-[#E5E2DA] flex items-center justify-between">
+                    <span class="text-xs font-semibold text-[#BA512A] flex items-center gap-1">
+                        <i class="fa-solid fa-volume-high text-[11px]"></i> Gemini Voice Enabled
+                    </span>
+                    <a href="/recommendations" class="btn-atelier btn-atelier-accent">
+                        Generate Outfit <i class="fa-solid fa-arrow-right text-xs ml-2"></i>
+                    </a>
+                </div>
             </div>
-            <a href="/wardrobe" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-primary hover:bg-primaryHover shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <i class="fa-solid fa-shirt mr-2"></i> Go to My Wardrobe
-            </a>
-        </div>
 
-    </div>
+            <!-- Wardrobe Archive Card -->
+            <div class="atelier-card flex flex-col justify-between">
+                <div>
+                    <div
+                        class="w-10 h-10 rounded-xl bg-[#F3F1EC] text-[#181715] border border-[#E5E2DA] flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-box-archive text-sm"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-[#181715]">Wardrobe Studio</h3>
+                    <p class="text-xs text-[#706D65] mt-1 leading-relaxed">
+                        Drop clothing photos for automated vision recognition, multi-attribute classification, and
+                        laundry tracking.
+                    </p>
+                </div>
+                <div class="mt-6 pt-4 border-t border-[#E5E2DA] flex items-center justify-between">
+                    <span class="text-xs text-[#706D65]">
+                        Multimodal AI Recognition
+                    </span>
+                    <a href="/wardrobe" class="btn-atelier btn-atelier-secondary">
+                        Open Wardrobe <i class="fa-solid fa-shirt text-xs ml-2"></i>
+                    </a>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
 
     <script src="/static/js/index.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileBtn && mobileMenu) {
+                mobileBtn.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
 </body>
+
 </html>

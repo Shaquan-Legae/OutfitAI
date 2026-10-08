@@ -2,7 +2,7 @@
   "id": "20251024125445115836-golfer.jpg",
   "filename": "20251024125445115836-golfer.jpg",
   "url": "/static/uploads/20251024125445115836-golfer.jpg",
-  "name": "Lacoste Green Golf Tee",
+  "name": "Lacoste Sage Green Knit Polo",
   "category": "Tops",
   "tags": [
     "Jersey",
@@ -11,5 +11,23 @@
   ],
   "description": "A red jersey (casual)",
   "uploaded_at": "2025-10-24T12:54:46.786257",
-  "in_laundry": true
+  "in_laundry": false,
+  "subcategory": "Polo",
+  "colors": [
+    "Green"
+  ],
+  "pattern": "Textured",
+  "material": "Knit",
+  "fit": "Relaxed",
+  "styles": [
+    "Preppy",
+    "Smart Casual"
+  ],
+  "seasons": [
+    "Spring",
+    "Summer",
+    "Autumn"
+  ],
+  "formality": "Smart Casual",
+  "confidence": 0.95
 }

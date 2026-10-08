@@ -27,7 +27,7 @@ def get_weather_by_coords(lat, lon):
     params = {
         'key': API_KEY,
         'q': location_query,
-        'days': 1, # Get forecast for today only
+        'days': 2, # Fetch 2 days to cleanly span upcoming hours across midnight
         'aqi': 'no', 
         'alerts': 'no' 
     }
@@ -37,38 +37,77 @@ def get_weather_by_coords(lat, lon):
         response.raise_for_status()  # Raises an HTTPError for bad responses (4xx or 5xx)
         data = response.json()
         
-        # --- Extract current, hourly, and astro data ---
+        # --- Extract current, location, and astro data ---
+        location_data = data.get('location', {})
         current_weather = data.get('current', {})
-        forecast_day = data.get('forecast', {}).get('forecastday', [])[0] # Get today's forecast
-        astro_data = forecast_day.get('astro', {})
-        hourly_data = forecast_day.get('hour', [])
+        forecast_days = data.get('forecast', {}).get('forecastday', [])
+        first_day = forecast_days[0] if forecast_days else {}
+        astro_data = first_day.get('astro', {})
 
-        # --- Process hourly data (select relevant hours if needed, format time) ---
+        # Determine exact location local time
+        localtime_str = location_data.get('localtime')
+        try:
+            if localtime_str:
+                local_dt = datetime.datetime.strptime(localtime_str, "%Y-%m-%d %H:%M")
+            else:
+                local_dt = datetime.datetime.now()
+        except Exception:
+            local_dt = datetime.datetime.now()
+
+        current_hour_dt = local_dt.replace(minute=0, second=0, microsecond=0)
+
+        # Collect all raw hours from today and tomorrow
+        all_raw_hours = []
+        for f_day in forecast_days:
+            all_raw_hours.extend(f_day.get('hour', []))
+
+        # Process upcoming hours from current local hour forward
         processed_hourly = []
-        now_hour = datetime.datetime.now().hour 
-        # Only show upcoming hours for today, limited to e.g., 12 hours
-        count = 0
-        for hour_data in hourly_data:
-            hour_time_str = hour_data.get('time') # e.g., "2025-10-22 17:00"
-            if hour_time_str:
-                 hour_dt = datetime.datetime.fromisoformat(hour_time_str)
-                 # Only include hours from the current hour onwards
-                 if hour_dt.hour >= now_hour and count < 12: # Limit to next 12 hours
-                    processed_hourly.append({
-                        'time': hour_dt.strftime('%I%p').lower(), # Format as "05pm"
-                        'temp_c': hour_data.get('temp_c'),
-                        'condition_icon': f"https:{hour_data.get('condition', {}).get('icon')}" if hour_data.get('condition', {}).get('icon') else None,
-                        'chance_of_rain': hour_data.get('chance_of_rain', 0) # Percentage
-                    })
-                    count += 1
-            if count >= 12: # Stop after 12 hours
-                 break
+        upcoming_trajectory = []
+        for h_entry in all_raw_hours:
+            h_time_str = h_entry.get('time')
+            if not h_time_str:
+                continue
+            try:
+                h_dt = datetime.datetime.strptime(h_time_str, "%Y-%m-%d %H:%M")
+            except Exception:
+                continue
+
+            if h_dt >= current_hour_dt and len(processed_hourly) < 12:
+                offset_hours = int((h_dt - current_hour_dt).total_seconds() // 3600)
+                rel_label = "Now" if offset_hours == 0 else f"+{offset_hours}h"
+                time_label = h_dt.strftime('%I%p').lower().lstrip('0')
+                
+                cond_text = h_entry.get('condition', {}).get('text', 'N/A')
+                temp_val = h_entry.get('temp_c')
+                rain_chance = h_entry.get('chance_of_rain', 0)
+                wind_k = h_entry.get('wind_kph', 0)
+
+                processed_hourly.append({
+                    'time': time_label,
+                    'full_time': h_dt.strftime('%H:%M'),
+                    'offset_hours': offset_hours,
+                    'rel_label': rel_label,
+                    'temp_c': temp_val,
+                    'condition': cond_text,
+                    'condition_icon': f"https:{h_entry.get('condition', {}).get('icon')}" if h_entry.get('condition', {}).get('icon') else None,
+                    'chance_of_rain': rain_chance,
+                    'wind_kph': wind_k
+                })
+
+                if offset_hours in [0, 1, 2, 3, 4, 6]:
+                    upcoming_trajectory.append(
+                        f"{time_label} ({rel_label}): {temp_val}°C, {cond_text}, {rain_chance}% rain"
+                    )
 
 
         # --- Assemble the combined data ---
         enhanced_weather_data = {
-            # Current conditions (from 'current' object)
-            'city': data.get('location', {}).get('name', 'Unknown Location'),
+            'city': location_data.get('name', 'Unknown Location'),
+            'region': location_data.get('region', ''),
+            'country': location_data.get('country', ''),
+            'local_time': local_dt.strftime('%H:%M'),
+            'local_date': local_dt.strftime('%Y-%m-%d'),
             'temp': current_weather.get('temp_c'),
             'feels_like': current_weather.get('feelslike_c'),
             'description': current_weather.get('condition', {}).get('text', 'N/A'),
@@ -77,11 +116,10 @@ def get_weather_by_coords(lat, lon):
             'humidity': current_weather.get('humidity'),
             'vis_km': current_weather.get('vis_km'),
             'uv': current_weather.get('uv'),
-            # Astro data
             'sunrise': astro_data.get('sunrise'),
             'sunset': astro_data.get('sunset'),
-            # Hourly forecast data
-            'hourly_forecast': processed_hourly 
+            'hourly_forecast': processed_hourly,
+            'hourly_trajectory_summary': " -> ".join(upcoming_trajectory)
         }
         return enhanced_weather_data
         

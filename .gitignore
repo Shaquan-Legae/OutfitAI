@@ -1,6 +1,21 @@
-#ignore .env
-.env  
-
-#ignore servicesAccountKey.json
+# Environment & secrets
+.env
+serviceAccountKey.json
 servicesAccountKey.json
 
+# Python virtual environment & cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
+._*
+cookies.txt
+
+# Local data & persistent chat files
+data/
+static/chat_history/
+static/uploads/
+logs

@@ -2,8 +2,8 @@
   "id": "20251022174421110624-chels.webp",
   "filename": "20251022174421110624-chels.webp",
   "url": "/static/uploads/20251022174421110624-chels.webp",
-  "name": "Chels Home Kit",
-  "category": "Tops",
+  "name": "Chelsea FC Home Kit Jersey",
+  "category": "Activewear",
   "tags": [
     "Jersey",
     "Green",
@@ -11,5 +11,24 @@
   ],
   "description": "A green jersey (smart-casual)",
   "uploaded_at": "2025-10-22T17:44:21.342683",
-  "in_laundry": true
+  "in_laundry": false,
+  "subcategory": "Football Jersey",
+  "colors": [
+    "Blue",
+    "White"
+  ],
+  "pattern": "Abstract",
+  "material": "Polyester",
+  "fit": "Regular",
+  "styles": [
+    "Sporty",
+    "Streetwear"
+  ],
+  "seasons": [
+    "Spring",
+    "Summer",
+    "Autumn"
+  ],
+  "formality": "Casual",
+  "confidence": 0.98
 }
