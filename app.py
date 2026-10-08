@@ -863,7 +863,9 @@ if __name__ == '__main__':
         port = 5001
 
     port = int(os.environ.get('PORT', port))
-    print(f"OutfitAI server starting on http://127.0.0.1:{port}")
-    app.run(debug=True, port=port)
+    host = os.environ.get('HOST', '0.0.0.0')
+    is_debug = os.environ.get('FLASK_DEBUG', 'true' if 'PORT' not in os.environ else 'false').lower() == 'true'
+    print(f"OutfitAI server starting on http://{host}:{port}")
+    app.run(host=host, port=port, debug=is_debug)
 
 
