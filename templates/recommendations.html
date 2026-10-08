@@ -311,6 +311,11 @@
             color: #FFFFFF;
             border-color: var(--terracotta);
         }
+        .msg-voice-btn.playing:hover {
+            background-color: #9E3E1A;
+            border-color: #9E3E1A;
+            transform: scale(1.02);
+        }
 
         /* Sound wave animation */
         @keyframes soundWave {
@@ -732,9 +737,9 @@
                 <button type="button" id="chat-voice-settings-btn" class="p-1.5 rounded-lg text-xs font-medium text-[#FAF9F6]/75 hover:text-white hover:bg-white/10 transition-colors" title="Voice Persona & Pace Settings" aria-label="Voice settings">
                     <i class="fa-solid fa-sliders text-xs"></i>
                 </button>
-                <!-- Auto-Voice Toggle -->
-                <button type="button" id="chat-voice-toggle" class="p-1.5 rounded-lg text-xs font-medium text-[#FAF9F6]/75 hover:text-white hover:bg-white/10 transition-colors" title="Toggle Auto-Speak Voice" aria-label="Toggle voice output">
-                    <i class="fa-solid fa-volume-xmark text-xs" id="voice-toggle-icon"></i>
+                <!-- Voice Mute Toggle -->
+                <button type="button" id="chat-voice-toggle" class="p-1.5 rounded-lg text-xs font-medium text-[#FAF9F6]/75 hover:text-white hover:bg-white/10 transition-colors" title="Toggle Sound / Mute" aria-label="Toggle sound mute">
+                    <i class="fa-solid fa-volume-high text-xs text-[#BA512A]" id="voice-toggle-icon"></i>
                 </button>
                 <!-- Clear History -->
                 <button type="button" id="chat-clear-btn" class="p-1.5 rounded-lg text-xs font-medium text-[#FAF9F6]/75 hover:text-white hover:bg-white/10 transition-colors" title="Clear Chat History" aria-label="Clear chat history">

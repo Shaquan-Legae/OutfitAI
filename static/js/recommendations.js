@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastSuggestedOutfit = null;
     let currentDisplayedResult = null;
     let activeOutfitContext = null;
-    let autoVoiceEnabled = localStorage.getItem('outfitai_auto_voice') === 'true';
+    let isMuted = localStorage.getItem('outfitai_muted') === 'true';
+    let autoVoiceEnabled = !isMuted && localStorage.getItem('outfitai_auto_voice') === 'true';
     let currentVoiceName = localStorage.getItem('outfitai_voice_name') || 'Kore';
     let currentVoiceSpeed = parseFloat(localStorage.getItem('outfitai_voice_speed') || '1.0');
     let currentAudioPlayer = null;
@@ -618,27 +619,38 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.focus();
     }
 
-    // Update Auto-Voice Toggle UI
+    // Update Voice Mute / Auto-Voice Toggle UI
     function updateVoiceToggleUI() {
         if (!chatVoiceToggle || !voiceToggleIcon) return;
-        if (autoVoiceEnabled) {
-            chatVoiceToggle.classList.add('text-[#BA512A]', 'bg-[#FDF3EE]');
-            chatVoiceToggle.classList.remove('text-[#FAF9F6]/75');
+        if (!isMuted) {
+            chatVoiceToggle.classList.add('text-[#BA512A]', 'bg-white/10');
+            chatVoiceToggle.classList.remove('text-[#FAF9F6]/50');
             voiceToggleIcon.className = 'fa-solid fa-volume-high text-xs text-[#BA512A]';
-            chatVoiceToggle.title = 'Gemini Voice Auto-Read: Enabled';
+            chatVoiceToggle.title = 'Sound Active — Click to Mute';
+            chatVoiceToggle.setAttribute('aria-label', 'Sound active, click to mute');
         } else {
-            chatVoiceToggle.classList.remove('text-[#BA512A]', 'bg-[#FDF3EE]');
-            chatVoiceToggle.classList.add('text-[#FAF9F6]/75');
+            chatVoiceToggle.classList.remove('text-[#BA512A]', 'bg-white/10');
+            chatVoiceToggle.classList.add('text-[#FAF9F6]/50');
             voiceToggleIcon.className = 'fa-solid fa-volume-xmark text-xs';
-            chatVoiceToggle.title = 'Gemini Voice Auto-Read: Disabled (Click to enable)';
+            chatVoiceToggle.title = 'Muted — Click to Unmute';
+            chatVoiceToggle.setAttribute('aria-label', 'Muted, click to unmute');
         }
     }
     updateVoiceToggleUI();
 
     if (chatVoiceToggle) {
-        chatVoiceToggle.addEventListener('click', () => {
-            autoVoiceEnabled = !autoVoiceEnabled;
+        chatVoiceToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMuted = !isMuted;
+            autoVoiceEnabled = !isMuted;
+            localStorage.setItem('outfitai_muted', isMuted ? 'true' : 'false');
             localStorage.setItem('outfitai_auto_voice', autoVoiceEnabled ? 'true' : 'false');
+
+            // Actually mute: immediately silence and cancel any running speech/audio
+            if (isMuted) {
+                stopAudioPlayback();
+            }
+
             updateVoiceToggleUI();
         });
     }
@@ -749,14 +761,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Stop current audio playback immediately (both HTML5 and SpeechSynthesis)
     function stopAudioPlayback() {
         if (currentAudioPlayer) {
-            currentAudioPlayer.pause();
+            try {
+                currentAudioPlayer.pause();
+                currentAudioPlayer.currentTime = 0;
+            } catch (e) {}
             currentAudioPlayer = null;
         }
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
+            try {
+                window.speechSynthesis.cancel();
+                if (window.speechSynthesis.pause) {
+                    window.speechSynthesis.resume();
+                    window.speechSynthesis.cancel();
+                }
+            } catch (e) {}
         }
         document.querySelectorAll('.msg-voice-btn.playing').forEach(btn => {
             btn.classList.remove('playing');
+            btn.title = 'Listen to advice';
             btn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
         });
     }
@@ -814,28 +836,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         utterance.onend = () => {
-            if (voiceBtn) {
-                voiceBtn.classList.remove('playing');
-                voiceBtn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
-            }
+            stopAudioPlayback();
         };
 
         utterance.onerror = () => {
-            if (voiceBtn) {
-                voiceBtn.classList.remove('playing');
-                voiceBtn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
-            }
+            stopAudioPlayback();
         };
 
         window.speechSynthesis.speak(utterance);
     }
 
     // Play Voice with Instantaneous 0ms Response
-    async function playGeminiAudio(text, voiceBtn = null, preloadedBase64 = null) {
+    async function playGeminiAudio(text, voiceBtn = null, preloadedBase64 = null, isAuto = false) {
+        // If the button clicked is ALREADY playing/speaking, clicking it means STOP playing!
+        if (voiceBtn && voiceBtn.classList.contains('playing')) {
+            stopAudioPlayback();
+            return;
+        }
+
         stopAudioPlayback();
+
+        // If system is muted:
+        // - Auto-playback must never speak
+        // - Manual click will play this clip
+        if (isMuted && isAuto) {
+            return;
+        }
 
         if (voiceBtn) {
             voiceBtn.classList.add('playing');
+            voiceBtn.title = 'Speaking — Click to stop';
             voiceBtn.innerHTML = `
                 <div class="flex items-center gap-0.5 h-3">
                     <span class="wave-bar"></span>
@@ -843,6 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="wave-bar"></span>
                 </div>
                 <span class="ml-1">Speaking</span>
+                <i class="fa-solid fa-stop text-[8px] ml-1 opacity-75"></i>
             `;
         }
 
@@ -853,33 +884,35 @@ document.addEventListener('DOMContentLoaded', () => {
             let base64Audio = preloadedBase64 || audioCache.get(cacheKey);
 
             if (base64Audio) {
+                // If stopped while preparing, abort
+                if (voiceBtn && !voiceBtn.classList.contains('playing')) return;
+
                 // Instant playback from audio cache (0ms)
                 const audio = new Audio("data:audio/wav;base64," + base64Audio);
                 audio.playbackRate = currentVoiceSpeed;
                 currentAudioPlayer = audio;
 
                 audio.onended = () => {
-                    if (voiceBtn) {
-                        voiceBtn.classList.remove('playing');
-                        voiceBtn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
-                    }
-                    currentAudioPlayer = null;
+                    stopAudioPlayback();
                 };
 
                 audio.onerror = () => {
-                    if (voiceBtn) {
-                        voiceBtn.classList.remove('playing');
-                        voiceBtn.innerHTML = '<i class="fa-solid fa-volume-xmark text-[9px]"></i> <span>Audio Error</span>';
-                    }
-                    currentAudioPlayer = null;
+                    stopAudioPlayback();
                 };
 
-                await audio.play();
+                try {
+                    await audio.play();
+                } catch (playErr) {
+                    if (playErr.name !== 'AbortError') {
+                        console.warn("Audio play interrupted:", playErr);
+                    }
+                }
                 return;
             }
 
             // If not cached yet, fire INSTANTLY with Web Speech Synthesis (0ms wait)
             if ('speechSynthesis' in window) {
+                if (voiceBtn && !voiceBtn.classList.contains('playing')) return;
                 playInstantBrowserSpeech(cleanText, voiceBtn);
                 // Prefetch high-def audio in background for subsequent playbacks
                 prefetchAudio(cleanText);
@@ -896,21 +929,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.error) throw new Error(data.error);
             base64Audio = data.audio_base64;
 
+            // If stopped or cancelled while waiting on network, abort
+            if (voiceBtn && !voiceBtn.classList.contains('playing')) return;
+
             if (base64Audio) {
                 audioCache.set(cacheKey, base64Audio);
                 const audio = new Audio("data:audio/wav;base64," + base64Audio);
                 audio.playbackRate = currentVoiceSpeed;
                 currentAudioPlayer = audio;
                 audio.onended = () => stopAudioPlayback();
-                await audio.play();
+                audio.onerror = () => stopAudioPlayback();
+                try {
+                    await audio.play();
+                } catch (playErr) {
+                    if (playErr.name !== 'AbortError') {
+                        console.warn("Audio play interrupted:", playErr);
+                    }
+                }
             }
 
         } catch (err) {
             console.error("Voice playback error:", err);
-            if (voiceBtn) {
-                voiceBtn.classList.remove('playing');
-                voiceBtn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
-            }
+            stopAudioPlayback();
         }
     }
 
@@ -944,8 +984,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const voiceBtn = document.createElement('button');
             voiceBtn.type = 'button';
             voiceBtn.className = 'msg-voice-btn';
+            voiceBtn.title = 'Listen to advice';
             voiceBtn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
-            voiceBtn.addEventListener('click', () => {
+            voiceBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // If currently playing / speaking, clicking it stops playing immediately
+                if (voiceBtn.classList.contains('playing')) {
+                    stopAudioPlayback();
+                    return;
+                }
                 playGeminiAudio(text, voiceBtn);
             });
             bubble.appendChild(voiceBtn);
@@ -953,9 +1000,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Trigger silent background prefetch immediately so audio is ready
             prefetchAudio(text);
 
-            // Auto-play voice if enabled and audioBase64 exists
-            if (audioBase64 && autoVoiceEnabled) {
-                playGeminiAudio(text, voiceBtn, audioBase64);
+            // Auto-play voice ONLY if auto-voice is enabled and system is NOT muted
+            if (audioBase64 && autoVoiceEnabled && !isMuted) {
+                playGeminiAudio(text, voiceBtn, audioBase64, true);
             }
         }
 
@@ -1139,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const payload = {
                     prompt: text,
                     imageBase64: currentImage,
-                    voice: autoVoiceEnabled,
+                    voice: autoVoiceEnabled && !isMuted,
                     voiceName: currentVoiceName,
                     activeOutfit: activeOutfitContext
                 };
