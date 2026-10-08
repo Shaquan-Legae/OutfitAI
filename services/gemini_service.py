@@ -8,8 +8,6 @@ import json
 import wave
 from PIL import Image
 from collections import deque
-import hashlib
-import numpy as np
 
 # Modern Google GenAI SDK for Gemini Voice (TTS) and advanced modalities
 try:
@@ -261,88 +259,12 @@ def chat_with_gemini(user_prompt: str, history_messages: list = None, wardrobe_i
         return "I'm having a brief moment of fashion contemplation. Please ask again in a second!"
 
 
-# Persistent Server-Side Voice Cache Directory
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TTS_CACHE_DIR = os.path.join(PROJECT_ROOT, "data", "tts_cache")
-try:
-    os.makedirs(TTS_CACHE_DIR, exist_ok=True)
-except Exception:
-    pass
-
-def _get_disk_tts_cache(cache_key: str) -> dict | None:
-    try:
-        h = hashlib.sha256(cache_key.encode("utf-8")).hexdigest()
-        cache_file = os.path.join(TTS_CACHE_DIR, f"{h}.json")
-        if os.path.exists(cache_file):
-            with open(cache_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-    except Exception as e:
-        print(f"Error reading TTS disk cache: {e}")
-    return None
-
-def _save_disk_tts_cache(cache_key: str, payload: dict):
-    try:
-        h = hashlib.sha256(cache_key.encode("utf-8")).hexdigest()
-        cache_file = os.path.join(TTS_CACHE_DIR, f"{h}.json")
-        with open(cache_file, "w", encoding="utf-8") as f:
-            json.dump(payload, f)
-    except Exception as e:
-        print(f"Error writing TTS disk cache: {e}")
-
-def condition_gemini_pcm(pcm_bytes: bytes, sample_rate: int = 24000) -> bytes:
-    """
-    Conditions raw Gemini PCM audio and eliminates end-of-speech harsh noise, pops, and static:
-    1. Ensures 16-bit 2-byte alignment.
-    2. Subtracts any DC bias/offset across the recording.
-    3. Smooth 10ms linear fade-in to prevent initial speaker clicks.
-    4. Smooth 80ms cosine fade-out at the end to guarantee the waveform gently reaches true zero.
-    5. Appends 60ms of clean digital silence (zero samples) as a tail buffer so browser DAC / decoders close silently without trailing noise.
-    """
-    if not pcm_bytes:
-        return b""
-    if len(pcm_bytes) % 2 != 0:
-        pcm_bytes = pcm_bytes[:-(len(pcm_bytes) % 2)]
-    
-    try:
-        samples = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32)
-        if len(samples) < 200:
-            return pcm_bytes
-        
-        # 1. Remove DC bias
-        dc_offset = np.mean(samples)
-        samples = samples - dc_offset
-        
-        # 2. Fade in first 10ms (240 samples at 24kHz)
-        fade_in_len = min(int(sample_rate * 0.01), len(samples) // 10)
-        if fade_in_len > 0:
-            fade_in = np.linspace(0.0, 1.0, fade_in_len)
-            samples[:fade_in_len] *= fade_in
-            
-        # 3. Fade out last 80ms (1920 samples at 24kHz) to eliminate abrupt cutoff & pink noise burst
-        fade_out_len = min(int(sample_rate * 0.08), len(samples) // 2)
-        if fade_out_len > 0:
-            fade_out = 0.5 * (1.0 + np.cos(np.linspace(0, np.pi, fade_out_len)))
-            samples[-fade_out_len:] *= fade_out
-            
-        # 4. Clamp to 16-bit boundaries
-        samples = np.clip(samples, -32768, 32767).astype(np.int16)
-        
-        # 5. Add 60ms of digital silence padding so browser DAC closes completely silent
-        silence_padding = np.zeros(int(sample_rate * 0.06), dtype=np.int16)
-        clean_samples = np.concatenate([samples, silence_padding])
-        
-        return clean_samples.tobytes()
-    except Exception as e:
-        print(f"PCM conditioning fallback: {e}")
-        return pcm_bytes
-
-
 # --- Text-to-Speech Generation using Gemini Voice ---
 def generate_tts_audio(text_to_speak: str, voice_name: str = "Kore") -> dict:
     """
     Generates browser-playable WAV audio data from text using Gemini TTS models.
-    Converts 24kHz 16-bit mono PCM into a standard WAV container with smooth fade-out.
-    Features dual-tier memory & disk caching for fast loading.
+    Converts 24kHz 16-bit mono PCM into a standard WAV container.
+    Features in-memory caching and concise text sanitization for minimum latency.
     """
     import re
     raw_text = text_to_speak.strip()
@@ -366,13 +288,7 @@ def generate_tts_audio(text_to_speak: str, voice_name: str = "Kore") -> dict:
     if cache_key in _TTS_CACHE:
         return _TTS_CACHE[cache_key]
 
-    # 2. Check persistent disk cache (1ms latency)
-    disk_cached = _get_disk_tts_cache(cache_key)
-    if disk_cached:
-        _TTS_CACHE[cache_key] = disk_cached
-        return disk_cached
-
-    # 3. Call Gemini TTS with model cascade
+    # 2. Call Gemini TTS with model cascade
     if modern_client and genai_types:
         for tts_model in CANDIDATE_TTS_MODELS:
             try:
@@ -392,17 +308,14 @@ def generate_tts_audio(text_to_speak: str, voice_name: str = "Kore") -> dict:
                 if response.candidates and response.candidates[0].content.parts:
                     part = response.candidates[0].content.parts[0]
                     if part.inline_data and part.inline_data.data:
-                        raw_pcm_bytes = part.inline_data.data
-                        # Clean and condition PCM: eliminate abrupt cuts, DC pops & trailing pink noise
-                        clean_pcm_bytes = condition_gemini_pcm(raw_pcm_bytes, 24000)
-
+                        pcm_bytes = part.inline_data.data
                         # Pack into standard WAV container (24kHz, 16-bit, mono)
                         wav_io = io.BytesIO()
                         with wave.open(wav_io, "wb") as wf:
                             wf.setnchannels(1)
                             wf.setsampwidth(2)
                             wf.setframerate(24000)
-                            wf.writeframes(clean_pcm_bytes)
+                            wf.writeframes(pcm_bytes)
                         wav_bytes = wav_io.getvalue()
                         wav_b64 = base64.b64encode(wav_bytes).decode("utf-8")
 
@@ -412,16 +325,53 @@ def generate_tts_audio(text_to_speak: str, voice_name: str = "Kore") -> dict:
                             "voice": chosen_voice
                         }
 
-                        # Save to both in-memory cache and persistent disk cache
-                        if len(_TTS_CACHE) > 200:
+                        # Cache response (up to 100 entries)
+                        if len(_TTS_CACHE) > 100:
                             _TTS_CACHE.pop(next(iter(_TTS_CACHE)))
                         _TTS_CACHE[cache_key] = payload
-                        _save_disk_tts_cache(cache_key, payload)
                         return payload
 
             except Exception as e:
                 print(f"Gemini TTS error on model {tts_model}: {e}")
                 continue
+
+    # 3. High-definition neural voice fallback (if Gemini API free tier hits 429 daily quota)
+    try:
+        import asyncio
+        import edge_tts
+
+        voice_map = {
+            "Kore": "en-US-AvaNeural",
+            "Aoede": "en-US-JennyNeural",
+            "Puck": "en-US-AndrewNeural",
+            "Charon": "en-US-BrianNeural",
+            "Fenrir": "en-US-ChristopherNeural"
+        }
+        edge_voice = voice_map.get(chosen_voice, "en-US-AvaNeural")
+
+        async def _synth_fallback():
+            comm = edge_tts.Communicate(clean_text, edge_voice)
+            data = b""
+            async for chunk in comm.stream():
+                if chunk["type"] == "audio":
+                    data += chunk["data"]
+            return data
+
+        audio_bytes = asyncio.run(_synth_fallback())
+        if audio_bytes:
+            audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+            payload = {
+                "audio_base64": audio_b64,
+                "mime_type": "audio/mp3",
+                "voice": chosen_voice,
+                "engine": "neural_fallback"
+            }
+            if len(_TTS_CACHE) > 100:
+                _TTS_CACHE.pop(next(iter(_TTS_CACHE)))
+            _TTS_CACHE[cache_key] = payload
+            return payload
+    except Exception as edge_err:
+        print(f"Fallback neural TTS error: {edge_err}")
 
     return {"error": "Gemini Voice TTS service is temporarily unavailable."}
 

@@ -15,71 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let speechRecognition = null;
     let isRecordingVoice = false;
 
-    // Persistent Multi-Tier Client Audio Cache (In-Memory + IndexedDB)
-    const VoiceCache = {
-        _mem: new Map(),
-        _db: null,
-        _dbName: 'OutfitAIVoiceStore',
-        _storeName: 'gemini_voices',
-
-        async init() {
-            if (this._db) return this._db;
-            if (typeof window === 'undefined' || !('indexedDB' in window)) return null;
-            return new Promise((resolve) => {
-                const req = indexedDB.open(this._dbName, 1);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(this._storeName)) {
-                        db.createObjectStore(this._storeName, { keyPath: 'k' });
-                    }
-                };
-                req.onsuccess = (e) => {
-                    this._db = e.target.result;
-                    resolve(this._db);
-                };
-                req.onerror = () => resolve(null);
-            });
-        },
-
-        async get(key) {
-            if (!key) return null;
-            if (this._mem.has(key)) return this._mem.get(key);
-            try {
-                const db = await this.init();
-                if (!db) return null;
-                return new Promise((resolve) => {
-                    const tx = db.transaction(this._storeName, 'readonly');
-                    const store = tx.objectStore(this._storeName);
-                    const req = store.get(key);
-                    req.onsuccess = () => {
-                        if (req.result && req.result.v) {
-                            this._mem.set(key, req.result.v);
-                            resolve(req.result.v);
-                        } else {
-                            resolve(null);
-                        }
-                    };
-                    req.onerror = () => resolve(null);
-                });
-            } catch (e) {
-                return null;
-            }
-        },
-
-        async set(key, base64) {
-            if (!key || !base64) return;
-            this._mem.set(key, base64);
-            try {
-                const db = await this.init();
-                if (!db) return;
-                const tx = db.transaction(this._storeName, 'readwrite');
-                const store = tx.objectStore(this._storeName);
-                store.put({ k: key, v: base64, t: Date.now() });
-            } catch (e) {}
-        }
-    };
-    VoiceCache.init();
-    const audioCache = VoiceCache._mem;
+    // In-memory Client Audio Cache: Instant (0ms) playback on repeat clicks
+    const audioCache = new Map();
 
     const CACHE_KEY = 'weatherDataCache';
     const CACHE_DURATION_MS = 30 * 60 * 1000;
@@ -843,19 +780,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Background prefetch audio so authentic Gemini neural voice is ready in cache
-    async function prefetchAudio(text) {
+    function prefetchAudio(text) {
         if (!text) return;
         const cleanText = text.replace(/[*_#`~]/g, '').trim();
         const cacheKey = `${currentVoiceName}:${cleanText}`;
-        const existing = await VoiceCache.get(cacheKey);
-        if (existing) return;
+        if (audioCache.has(cacheKey)) return;
         fetch('/api/chatbot/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: cleanText, voice: currentVoiceName })
         }).then(r => r.json()).then(data => {
             if (data && data.audio_base64) {
-                VoiceCache.set(cacheKey, data.audio_base64);
+                audioCache.set(cacheKey, data.audio_base64);
             }
         }).catch(() => {});
     }
@@ -880,8 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cleanText = text.replace(/[*_#`~]/g, '').trim();
         const cacheKey = `${currentVoiceName}:${cleanText}`;
 
-        // Fast retrieval from persistent VoiceCache
-        let base64Audio = preloadedBase64 || await VoiceCache.get(cacheKey);
+        let base64Audio = preloadedBase64 || audioCache.get(cacheKey);
 
         // If not cached yet, fetch authentic Gemini neural audio from API
         if (!base64Audio) {
@@ -910,19 +845,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (base64Audio) {
-                    await VoiceCache.set(cacheKey, base64Audio);
+                    audioCache.set(cacheKey, base64Audio);
                 } else {
                     throw new Error("No Gemini audio received.");
                 }
             } catch (fetchErr) {
-                console.error("Gemini TTS fetch error:", fetchErr);
+                console.warn("Neural TTS fetch error, attempting browser speech fallback:", fetchErr);
+                if (voiceBtn && !voiceBtn.classList.contains('loading')) {
+                    stopAudioPlayback();
+                    return;
+                }
+                // Graceful fallback to browser speech synthesis so voice never dies
+                if ('speechSynthesis' in window) {
+                    playBrowserSpeechFallback(cleanText, voiceBtn);
+                    return;
+                }
                 stopAudioPlayback();
                 if (voiceBtn) {
-                    voiceBtn.title = 'Gemini Voice unavailable';
+                    voiceBtn.title = 'Voice unavailable';
                     voiceBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-[9px]"></i> <span>Unavailable</span>';
                     setTimeout(() => {
                         voiceBtn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
-                        voiceBtn.title = 'Listen to Gemini Voice';
+                        voiceBtn.title = 'Listen to advice';
                     }, 2500);
                 }
                 return;
@@ -948,21 +892,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const audio = new Audio("data:audio/wav;base64," + base64Audio);
+            const mimeType = (base64Audio.startsWith('//uQ') || base64Audio.startsWith('SUQz')) ? 'audio/mp3' : 'audio/wav';
+            const audio = new Audio(`data:${mimeType};base64,${base64Audio}`);
             audio.playbackRate = currentVoiceSpeed;
             currentAudioPlayer = audio;
 
-            // Clean natural ending: do NOT call .pause() or .currentTime = 0 on EOF
-            // to eliminate browser DAC audio pops & pink noise burst
             audio.onended = () => {
-                if (voiceBtn) {
-                    voiceBtn.classList.remove('playing', 'loading');
-                    voiceBtn.title = 'Listen to Gemini Voice';
-                    voiceBtn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
-                }
-                if (currentAudioPlayer === audio) {
-                    currentAudioPlayer = null;
-                }
+                stopAudioPlayback();
             };
 
             audio.onerror = () => {
@@ -976,6 +912,61 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             stopAudioPlayback();
         }
+    }
+
+    // Browser Speech Synthesis Fallback (Safety net if backend network fails)
+    function playBrowserSpeechFallback(cleanText, voiceBtn) {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+
+        if (voiceBtn) {
+            voiceBtn.classList.remove('loading');
+            voiceBtn.classList.add('playing');
+            voiceBtn.title = 'Speaking — Click to stop';
+            voiceBtn.innerHTML = `
+                <div class="flex items-center gap-0.5 h-3">
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                </div>
+                <span class="ml-1">Speaking</span>
+                <i class="fa-solid fa-stop text-[8px] ml-1 opacity-75"></i>
+            `;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.rate = currentVoiceSpeed || 1.0;
+
+        if (currentVoiceName === 'Aoede') {
+            utterance.pitch = 1.15;
+        } else if (currentVoiceName === 'Puck') {
+            utterance.pitch = 1.3;
+        } else if (currentVoiceName === 'Charon') {
+            utterance.pitch = 0.82;
+        } else if (currentVoiceName === 'Fenrir') {
+            utterance.pitch = 0.72;
+        } else {
+            utterance.pitch = 1.0;
+        }
+
+        const voices = window.speechSynthesis.getVoices();
+        if (voices && voices.length > 0) {
+            const eng = voices.filter(v => v.lang.startsWith('en'));
+            if (eng.length > 0) {
+                if (currentVoiceName === 'Charon' || currentVoiceName === 'Fenrir') {
+                    const m = eng.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('daniel') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('alex'));
+                    if (m) utterance.voice = m;
+                } else if (currentVoiceName === 'Aoede' || currentVoiceName === 'Kore') {
+                    const f = eng.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('karen') || v.name.toLowerCase().includes('victoria') || v.name.toLowerCase().includes('serena'));
+                    if (f) utterance.voice = f;
+                }
+            }
+        }
+
+        utterance.onend = () => stopAudioPlayback();
+        utterance.onerror = () => stopAudioPlayback();
+
+        window.speechSynthesis.speak(utterance);
     }
 
     // Add message to chat DOM
@@ -1233,10 +1224,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const botReply = data.response || "I couldn't compose advice right now.";
                 const audioBase64 = data.audio ? data.audio.audio_base64 : null;
 
-                // Pre-cache voice reply in persistent VoiceCache
+                // Pre-cache voice reply in audioCache
                 if (audioBase64) {
                     const cleanRep = botReply.replace(/[*_#`~]/g, '').trim();
-                    VoiceCache.set(`${currentVoiceName}:${cleanRep}`, audioBase64);
+                    audioCache.set(`${currentVoiceName}:${cleanRep}`, audioBase64);
                 }
 
                 appendMessageElement('model', botReply, null, audioBase64);
