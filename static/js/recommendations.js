@@ -758,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Stop current audio playback immediately (both HTML5 and SpeechSynthesis)
+    // Stop current audio playback immediately (HTML5 Audio and any SpeechSynthesis)
     function stopAudioPlayback() {
         if (currentAudioPlayer) {
             try {
@@ -770,20 +770,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
             try {
                 window.speechSynthesis.cancel();
-                if (window.speechSynthesis.pause) {
-                    window.speechSynthesis.resume();
-                    window.speechSynthesis.cancel();
-                }
             } catch (e) {}
         }
-        document.querySelectorAll('.msg-voice-btn.playing').forEach(btn => {
-            btn.classList.remove('playing');
-            btn.title = 'Listen to advice';
+        document.querySelectorAll('.msg-voice-btn.playing, .msg-voice-btn.loading').forEach(btn => {
+            btn.classList.remove('playing', 'loading');
+            btn.title = 'Listen to Gemini Voice';
             btn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
         });
     }
 
-    // Background prefetch audio so studio-quality speech is ready in cache
+    // Background prefetch audio so authentic Gemini neural voice is ready in cache
     function prefetchAudio(text) {
         if (!text) return;
         const cleanText = text.replace(/[*_#`~]/g, '').trim();
@@ -800,56 +796,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }).catch(() => {});
     }
 
-    // Instant browser speech synthesis (starts in <15ms with 0 network latency)
-    function playInstantBrowserSpeech(cleanText, voiceBtn) {
-        if (!('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.rate = currentVoiceSpeed || 1.0;
-
-        // Apply distinct vocal timbre and pitch for selected persona
-        if (currentVoiceName === 'Aoede') {
-            utterance.pitch = 1.15;
-        } else if (currentVoiceName === 'Puck') {
-            utterance.pitch = 1.3;
-        } else if (currentVoiceName === 'Charon') {
-            utterance.pitch = 0.82;
-        } else if (currentVoiceName === 'Fenrir') {
-            utterance.pitch = 0.72;
-        } else {
-            utterance.pitch = 1.0;
-        }
-
-        const voices = window.speechSynthesis.getVoices();
-        if (voices && voices.length > 0) {
-            const eng = voices.filter(v => v.lang.startsWith('en'));
-            if (eng.length > 0) {
-                if (currentVoiceName === 'Charon' || currentVoiceName === 'Fenrir') {
-                    const m = eng.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('daniel') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('alex'));
-                    if (m) utterance.voice = m;
-                } else if (currentVoiceName === 'Aoede' || currentVoiceName === 'Kore') {
-                    const f = eng.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('karen') || v.name.toLowerCase().includes('victoria') || v.name.toLowerCase().includes('serena'));
-                    if (f) utterance.voice = f;
-                }
-            }
-        }
-
-        utterance.onend = () => {
-            stopAudioPlayback();
-        };
-
-        utterance.onerror = () => {
-            stopAudioPlayback();
-        };
-
-        window.speechSynthesis.speak(utterance);
-    }
-
-    // Play Voice with Instantaneous 0ms Response
+    // Play Voice using Gemini Neural Voices ONLY (no browser system TTS)
     async function playGeminiAudio(text, voiceBtn = null, preloadedBase64 = null, isAuto = false) {
-        // If the button clicked is ALREADY playing/speaking, clicking it means STOP playing!
-        if (voiceBtn && voiceBtn.classList.contains('playing')) {
+        // If the button clicked is ALREADY playing/speaking or loading, clicking it means STOP playing!
+        if (voiceBtn && (voiceBtn.classList.contains('playing') || voiceBtn.classList.contains('loading'))) {
             stopAudioPlayback();
             return;
         }
@@ -863,7 +813,62 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const cleanText = text.replace(/[*_#`~]/g, '').trim();
+        const cacheKey = `${currentVoiceName}:${cleanText}`;
+
+        let base64Audio = preloadedBase64 || audioCache.get(cacheKey);
+
+        // If not cached yet, fetch authentic Gemini neural audio from API
+        if (!base64Audio) {
+            if (voiceBtn) {
+                voiceBtn.classList.add('loading');
+                voiceBtn.title = 'Generating Gemini Voice — Click to cancel';
+                voiceBtn.innerHTML = `
+                    <i class="fa-solid fa-circle-notch fa-spin text-[9px]"></i>
+                    <span class="ml-1">Gemini Voice...</span>
+                `;
+            }
+
+            try {
+                const res = await fetch('/api/chatbot/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: cleanText, voice: currentVoiceName })
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                base64Audio = data.audio_base64;
+
+                // If user stopped or muted while waiting on network, abort
+                if (voiceBtn && !voiceBtn.classList.contains('loading')) {
+                    return;
+                }
+
+                if (base64Audio) {
+                    audioCache.set(cacheKey, base64Audio);
+                } else {
+                    throw new Error("No Gemini audio received.");
+                }
+            } catch (fetchErr) {
+                console.error("Gemini TTS fetch error:", fetchErr);
+                stopAudioPlayback();
+                if (voiceBtn) {
+                    voiceBtn.title = 'Gemini Voice unavailable';
+                    voiceBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-[9px]"></i> <span>Unavailable</span>';
+                    setTimeout(() => {
+                        voiceBtn.innerHTML = '<i class="fa-solid fa-volume-high text-[9px]"></i> <span>Listen</span>';
+                        voiceBtn.title = 'Listen to Gemini Voice';
+                    }, 2500);
+                }
+                return;
+            }
+        }
+
+        // If user stopped or muted in the meantime, abort
+        if (isMuted && isAuto) return;
+
         if (voiceBtn) {
+            voiceBtn.classList.remove('loading');
             voiceBtn.classList.add('playing');
             voiceBtn.title = 'Speaking — Click to stop';
             voiceBtn.innerHTML = `
@@ -878,78 +883,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const cleanText = text.replace(/[*_#`~]/g, '').trim();
-            const cacheKey = `${currentVoiceName}:${cleanText}`;
+            const audio = new Audio("data:audio/wav;base64," + base64Audio);
+            audio.playbackRate = currentVoiceSpeed;
+            currentAudioPlayer = audio;
 
-            let base64Audio = preloadedBase64 || audioCache.get(cacheKey);
+            audio.onended = () => {
+                stopAudioPlayback();
+            };
 
-            if (base64Audio) {
-                // If stopped while preparing, abort
-                if (voiceBtn && !voiceBtn.classList.contains('playing')) return;
+            audio.onerror = () => {
+                stopAudioPlayback();
+            };
 
-                // Instant playback from audio cache (0ms)
-                const audio = new Audio("data:audio/wav;base64," + base64Audio);
-                audio.playbackRate = currentVoiceSpeed;
-                currentAudioPlayer = audio;
-
-                audio.onended = () => {
-                    stopAudioPlayback();
-                };
-
-                audio.onerror = () => {
-                    stopAudioPlayback();
-                };
-
-                try {
-                    await audio.play();
-                } catch (playErr) {
-                    if (playErr.name !== 'AbortError') {
-                        console.warn("Audio play interrupted:", playErr);
-                    }
-                }
-                return;
+            await audio.play();
+        } catch (playErr) {
+            if (playErr.name !== 'AbortError') {
+                console.warn("Audio play interrupted:", playErr);
             }
-
-            // If not cached yet, fire INSTANTLY with Web Speech Synthesis (0ms wait)
-            if ('speechSynthesis' in window) {
-                if (voiceBtn && !voiceBtn.classList.contains('playing')) return;
-                playInstantBrowserSpeech(cleanText, voiceBtn);
-                // Prefetch high-def audio in background for subsequent playbacks
-                prefetchAudio(cleanText);
-                return;
-            }
-
-            // Fallback for environments without speech synthesis
-            const res = await fetch('/api/chatbot/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: cleanText, voice: currentVoiceName })
-            });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
-            base64Audio = data.audio_base64;
-
-            // If stopped or cancelled while waiting on network, abort
-            if (voiceBtn && !voiceBtn.classList.contains('playing')) return;
-
-            if (base64Audio) {
-                audioCache.set(cacheKey, base64Audio);
-                const audio = new Audio("data:audio/wav;base64," + base64Audio);
-                audio.playbackRate = currentVoiceSpeed;
-                currentAudioPlayer = audio;
-                audio.onended = () => stopAudioPlayback();
-                audio.onerror = () => stopAudioPlayback();
-                try {
-                    await audio.play();
-                } catch (playErr) {
-                    if (playErr.name !== 'AbortError') {
-                        console.warn("Audio play interrupted:", playErr);
-                    }
-                }
-            }
-
-        } catch (err) {
-            console.error("Voice playback error:", err);
             stopAudioPlayback();
         }
     }

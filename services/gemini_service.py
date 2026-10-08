@@ -55,9 +55,15 @@ safety_settings = [
 ]
 
 MODEL_NAME = "gemini-3.1-flash-lite-preview"
-TTS_MODEL_NAME = "gemini-2.5-flash-preview-tts"
+TTS_MODEL_NAME = "gemini-3.8-flash-lite-tts"
 CANDIDATE_TEXT_MODELS = ["gemini-3.1-flash-lite-preview", "gemini-3-flash-preview", "gemini-flash-latest"]
-CANDIDATE_TTS_MODELS = ["gemini-2.5-flash-preview-tts", "gemini-3.1-flash-tts-preview"]
+CANDIDATE_TTS_MODELS = [
+    "gemini-3.8-flash-lite-tts",
+    "gemini-3.8-flash-tts",
+    "gemini-3.1-flash-tts-preview",
+    "gemini-2.5-flash-preview-tts",
+    "gemini-2.5-pro-preview-tts"
+]
 
 # In-memory TTS Cache to make repeated listen clicks instantaneous (0ms latency)
 _TTS_CACHE = {}
