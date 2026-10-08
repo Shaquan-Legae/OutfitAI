@@ -1,6 +1,7 @@
 # /OutfitAI/services/firebase_service.py
 
 import os
+os.environ.setdefault('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION', 'python')
 import datetime
 import json
 import firebase_admin

@@ -1,8 +1,9 @@
 # /OutfitAI/app.py
+import os
+os.environ.setdefault('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION', 'python')
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
 from services import firebase_service, weather_service, tensorflow_service, gemini_service
-import os
 import datetime
 import mimetypes
 import json
